@@ -1,0 +1,25 @@
+[package]
+name = "musicbrainz-dump"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+description = "musicbrainz-rs — read MusicBrainz full exports fast: parallel bzip2, streaming tar, PostgreSQL COPY text, and resumable, checksummed downloads."
+keywords = ["musicbrainz", "dump", "bzip2", "tar", "metabrainz"]
+categories = ["compression", "parser-implementations"]
+
+[dependencies]
+bzip2.workspace = true
+flate2.workspace = true
+zstd.workspace = true
+ureq.workspace = true
+memchr.workspace = true
+crc32fast.workspace = true
+crossbeam-channel.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

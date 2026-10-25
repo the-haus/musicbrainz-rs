@@ -1,0 +1,15 @@
+[package]
+name = "musicbrainz-schema"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+description = "musicbrainz-rs — the MusicBrainz database schema (tables, columns, types, primary and foreign keys), parsed from musicbrainz-server's own SQL, and which export archive holds which table."
+keywords = ["musicbrainz", "schema", "dump", "postgresql"]
+categories = ["database", "parser-implementations"]
+include = ["src/**", "sql/**", "README.md"]
+
+[dependencies]
+thiserror.workspace = true

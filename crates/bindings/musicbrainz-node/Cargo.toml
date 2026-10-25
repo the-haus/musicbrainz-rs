@@ -1,0 +1,30 @@
+[package]
+name = "musicbrainz-node"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["mimalloc"]
+# mimalloc as the global allocator, except on macOS (see src/lib.rs).
+mimalloc = ["dep:mimalloc"]
+
+[dependencies]
+napi = { version = "2", default-features = false, features = ["napi6"] }
+napi-derive = "2"
+serde.workspace = true
+serde_json.workspace = true
+
+musicbrainz-schema.workspace = true
+musicbrainz-dump.workspace = true
+musicbrainz-db.workspace = true
+
+[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+mimalloc = { workspace = true, optional = true }
+
+[build-dependencies]
+napi-build = "2"

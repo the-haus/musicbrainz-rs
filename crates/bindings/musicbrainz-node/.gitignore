@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.node
+*.tsbuildinfo
+native.generated.d.ts
+LICENSE
+npm/
+artifacts/
+*.tgz
+CHANGELOG.md

@@ -1,0 +1,60 @@
+[workspace]
+members = [
+    "crates/musicbrainz-schema",
+    "crates/musicbrainz-dump",
+    "crates/musicbrainz-db",
+    "crates/musicbrainz-cli",
+    "crates/bindings/musicbrainz-node",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license-file = "LICENCE.txt"
+repository = "https://github.com/the-haus/musicbrainz-rs"
+rust-version = "1.87"
+
+[workspace.dependencies]
+# Internal crates.
+musicbrainz-schema = { path = "crates/musicbrainz-schema", version = "=0.1.0" }
+musicbrainz-dump = { path = "crates/musicbrainz-dump", version = "=0.1.0" }
+musicbrainz-db = { path = "crates/musicbrainz-db", version = "=0.1.0" }
+
+# External crates.
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+crossbeam-channel = "0.5"
+memchr = "2.7"
+crc32fast = "1.4"
+rustc-hash = "2"
+rayon = "1.10"
+memmap2 = "0.9"
+duckdb = { version = "=1.10506.0", features = ["bundled", "json", "parquet"] }
+bzip2 = "0.6"
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+zstd = { version = "0.13", default-features = false }
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+sha2 = "0.10"
+mimalloc = { version = "0.1", default-features = false }
+clap = { version = "4", features = ["derive"] }
+tempfile = "3"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+debug = 1
+panic = "unwind"
+
+# DuckDB is C++ built by libduckdb-sys's build script, which leaves
+# assertions on (no NDEBUG) whenever the profile has debug info: they made
+# an index on 40 M MBIDs take 305 s instead of 9. No debug info for it, and
+# optimised in dev builds too (the tests load databases).
+[profile.release.package.libduckdb-sys]
+debug = false
+
+[profile.dev.package.libduckdb-sys]
+debug = false
+opt-level = 3

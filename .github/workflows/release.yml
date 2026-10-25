@@ -1,0 +1,170 @@
+# Release everything for a v* tag (or a dry run by hand):
+#
+# 1. check: versions agree with the tag (scripts/check-version.mjs), the
+#    workspace builds and its tests pass, and the CHANGELOG section becomes
+#    the release notes;
+# 2. npm: @musicbrainz-rs/node and its seven platform packages (release-node.yml);
+# 3. cli: `musicbrainz` binaries for Linux, macOS and Windows;
+# 4. github-release: a GitHub release with the notes, binaries and checksums.
+#
+# The crates are not published to crates.io yet.
+#
+# Secrets: NPM_TOKEN (or npm trusted publishing).
+# Environments: npm-publish (add reviewers to gate it).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build and check everything but publish nothing.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+
+jobs:
+  check:
+    name: check versions, build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-node-yarn
+      - id: version
+        name: versions agree (with the tag)
+        shell: bash
+        run: |
+          TAG=""
+          [[ "$GITHUB_REF" == refs/tags/v* ]] && TAG="$GITHUB_REF_NAME"
+          echo "version=$(node scripts/check-version.mjs ${TAG:+"$TAG"})" >> "$GITHUB_OUTPUT"
+      - name: release notes from CHANGELOG.md
+        shell: bash
+        env:
+          V: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v v="$V" '$0 ~ "^## "v"( |$)" {on=1; next} on && /^## / {exit} on' CHANGELOG.md > notes.md
+          test -s notes.md
+      - uses: actions/upload-artifact@v5
+        with:
+          name: release-notes
+          path: notes.md
+          retention-days: 1
+      - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-check
+          components: rustfmt,clippy
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked --release --exclude musicbrainz-node
+      - name: the crates package
+        run: cargo package --workspace --exclude musicbrainz-node --exclude musicbrainz-cli --locked --no-verify
+
+  npm:
+    needs: check
+    uses: ./.github/workflows/release-node.yml
+    with:
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    permissions:
+      contents: read
+      id-token: write
+
+  cli:
+    name: musicbrainz ${{ matrix.target }}
+    needs: check
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-cli-${{ matrix.target }}
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --locked -p musicbrainz-cli --target ${{ matrix.target }}
+      - name: package
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          NAME="musicbrainz-$VERSION-$TARGET"
+          mkdir -p "dist/$NAME"
+          EXE=musicbrainz; [[ "$TARGET" == *windows* ]] && EXE=musicbrainz.exe
+          cp "target/$TARGET/release/$EXE" README.md CHANGELOG.md LICENCE.txt "dist/$NAME/"
+          cd dist
+          if [[ "$TARGET" == *windows* ]]; then
+            7z a -tzip "$NAME.zip" "$NAME" >/dev/null
+          else
+            tar -czf "$NAME.tar.gz" "$NAME"
+          fi
+          rm -rf "$NAME"
+      - name: smoke test
+        if: matrix.target != 'x86_64-apple-darwin'
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          EXE=musicbrainz; [[ "$TARGET" == *windows* ]] && EXE=musicbrainz.exe
+          "target/$TARGET/release/$EXE" --version
+          "target/$TARGET/release/$EXE" info fixtures/daft-punk
+          "target/$TARGET/release/$EXE" build fixtures/daft-punk smoke.duckdb
+          "target/$TARGET/release/$EXE" query smoke.duckdb "SELECT name FROM artist WHERE gid = '056e4f3e-d505-4dad-8ec1-d04f521cbb56'"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: cli-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  github-release:
+    name: GitHub release
+    needs: [check, npm, cli]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+          path: dist
+      - name: checksums
+        working-directory: dist
+        run: sha256sum musicbrainz-* > SHA256SUMS && cat SHA256SUMS
+      - name: create the release
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.check.outputs.version }}
+        shell: bash
+        run: |
+          PRE=(); [[ "$VERSION" == *-* ]] && PRE=(--prerelease)
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "v$VERSION" --notes-file dist/notes.md "${PRE[@]}" \
+            dist/musicbrainz-* dist/SHA256SUMS

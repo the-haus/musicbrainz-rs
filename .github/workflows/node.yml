@@ -1,0 +1,50 @@
+name: node
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: crates/bindings/musicbrainz-node
+
+jobs:
+  verify:
+    name: build, typecheck, test, pack (${{ matrix.os }}, node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ["22"]
+        include:
+          - os: ubuntu-latest
+            node: "20"
+          - os: ubuntu-latest
+            node: "24"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-rust
+        with:
+          cache-key: node-${{ matrix.os }}
+      - uses: ./.github/actions/setup-node-yarn
+        with:
+          node-version: ${{ matrix.node }}
+      - name: yarn install
+        working-directory: .
+        run: corepack yarn install --immutable
+      - run: corepack yarn run build:native
+      - run: corepack yarn run build:ts
+      - run: corepack yarn run typecheck
+      - run: corepack yarn run test
+      - run: npm pack --dry-run

@@ -1,0 +1,25 @@
+[package]
+name = "musicbrainz-db"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+description = "musicbrainz-rs — MusicBrainz full exports as a DuckDB database: loaded straight from mbdump.tar.bz2 in one pass, typed from the schema SQL, indexed, refreshed with a diff of what changed."
+keywords = ["musicbrainz", "duckdb", "dump", "database", "metabrainz"]
+categories = ["database", "parser-implementations"]
+
+[dependencies]
+musicbrainz-schema.workspace = true
+musicbrainz-dump.workspace = true
+duckdb.workspace = true
+crossbeam-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+ureq.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+bzip2.workspace = true

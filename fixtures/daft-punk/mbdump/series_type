@@ -1,0 +1,19 @@
+7	Tour	event	6	0	A series of related concerts by an artist in different locations.	8ff6df0e-3dce-3bdf-bd57-d386c51b0060
+8	Festival	event	6	1	A recurring festival, usually happening annually in the same location.	44e9f6b1-34a7-3a17-a5d5-07bb100d8887
+9	Run	event	6	2	A series of performances of the same show at the same venue.	975e9447-dfa8-3e29-82d6-07908fe36f3e
+5	Catalogue	work	4	0	A series of works which form a catalogue of classical compositions.	49482ff0-fc9e-3b8c-a2d0-30e84d9df002
+6	Event series	event	\N	5	A series of events.	64640a2a-1c31-394d-b7b0-683a32ff9aff
+3	Recording series	recording	\N	2	A series of recordings.	dd968243-7128-30a2-81f0-79843430a8e2
+2	Release series	release	\N	1	A series of releases.	52b90f1e-ff62-3bd0-b254-5d91ced5d757
+1	Release group series	release_group	\N	0	A series of release groups.	4c1c4949-7b6c-3a2d-9d54-a50a27e4fa77
+4	Work series	work	\N	3	A series of works.	b689f694-6305-3d78-954d-df6759a1877b
+12	Residency	event	6	3	A series of related concerts by an artist in the same location.	252fd661-fdf6-405c-8f9d-43379847e0ae
+13	Artist series	artist	\N	4	A series of artists.	c5358f01-618a-396d-8c78-9e76e6a52d7d
+14	Artist award	artist	13	0	A series of artists honoured by the same award.	dca73eca-a855-3408-9094-f7d5d073cef0
+46	Work award	work	4	0	A series of works honoured by the same award.	2b446390-880b-4f58-814c-d51c79575823
+15	Award ceremony	event	6	4	A series of award ceremonies, usually one per year.	991925f8-ad29-4ff0-a777-fa2214f8b8e9
+47	Release group award	release_group	1	0	A series of release groups honoured by the same award.	133524ac-b9e4-4c6f-becb-774ab963de2f
+48	Recording award	recording	3	0	A series of recordings honoured by the same award.	e667457d-77e7-4848-8472-5b65ff191896
+80	Podcast	release_group	1	1	A series of release groups containing episodes of the same podcast series.	ef6f7b93-868a-43a9-b59c-a73b62c2c51e
+16	Series series	series	\N	6	A series of series.	088eb8a5-e5fd-33dc-9e9f-c62de2dd0300
+17	Series award	series	16	0	A series of series (such as podcasts or festivals) honoured by the same award.	a3d7e6d5-b4f2-3a36-bd2d-db73ebfcdbce

@@ -1,0 +1,30 @@
+name: setup-rust
+description: Install the stable Rust toolchain and cache cargo artefacts per job.
+
+inputs:
+  cache-key:
+    description: Swatinem/rust-cache shared key (empty disables caching).
+    required: false
+    default: ""
+  targets:
+    description: Comma-separated extra Rust targets.
+    required: false
+    default: ""
+  components:
+    description: Comma-separated components (rustfmt, clippy).
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ inputs.targets }}
+        components: ${{ inputs.components }}
+    - if: inputs.cache-key != ''
+      uses: Swatinem/rust-cache@v2
+      with:
+        prefix-key: "v1-rust"
+        shared-key: ${{ inputs.cache-key }}
+        cache-bin: "false"

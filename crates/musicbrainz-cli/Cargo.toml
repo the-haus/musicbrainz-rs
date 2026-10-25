@@ -1,0 +1,30 @@
+[package]
+name = "musicbrainz-cli"
+edition.workspace = true
+version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+description = "musicbrainz-rs — the `musicbrainz` command: download MusicBrainz full exports, build and refresh DuckDB databases from them, query them."
+keywords = ["musicbrainz", "duckdb", "cli", "dump"]
+categories = ["command-line-utilities", "database"]
+
+[[bin]]
+name = "musicbrainz"
+path = "src/main.rs"
+
+[features]
+default = ["mimalloc"]
+mimalloc = ["dep:mimalloc"]
+
+[dependencies]
+musicbrainz-schema.workspace = true
+musicbrainz-dump.workspace = true
+musicbrainz-db.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+ctrlc = "3"
+
+[target.'cfg(not(target_vendor = "apple"))'.dependencies]
+mimalloc = { workspace = true, optional = true }

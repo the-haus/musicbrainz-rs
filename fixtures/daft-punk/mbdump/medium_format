@@ -1,0 +1,115 @@
+2	DVD	\N	4	1995	f	\N	2875c583-4580-3a90-b723-ba1b39921e23
+3	SACD	\N	5	1999	t	\N	5c9021b5-aecf-3339-b78e-c7bbe427c342
+4	DualDisc	\N	6	2004	t	\N	564fb227-66af-356e-a4c6-f0a3f806fcd1
+6	MiniDisc	\N	7	1992	f	\N	671c5ed4-20e3-3a62-b6ea-f155cde04258
+8	Cassette	\N	3	1964	f	\N	f5e6e254-8f39-331c-936b-9c69d686dc47
+90	Tefifon	13	0	1936	f	German tape cartridge format, using grooved tape rather than magnetic tape.	12fadf41-2519-4635-a010-eda7b1bb0fc3
+49	3.5" Floppy Disk	76	0	1981	f	\N	a9527198-e02a-31e3-be3d-3b88e26a59c9
+47	DVDplus	13	0	1999	t	\N	9e52c71a-e9e2-3386-87f7-3111f3e8934b
+51	Flexi-disc	7	3	1962	f	Flexi-discs are phonograph records made of a thin, flexible vinyl sheet with a molded-in groove, designed to be playable on a normal phonograph turntable.	400e26c7-dc10-308c-991f-55c49d40f8d1
+9	Cartridge	13	0	1962	f	\N	2b240bc1-a4d7-34de-928f-f85e372751bd
+10	Reel-to-reel	13	0	1935	f	\N	58016447-3617-3da2-b1d0-7646c2a7797e
+11	DAT	13	0	1976	f	\N	0bef8b9c-f1f8-3f49-a737-dde52fb120ea
+14	Wax Cylinder	13	0	1877	f	\N	329b3584-ff79-39fa-b234-7dafdd29fb7e
+15	Piano Roll	13	0	1883	f	\N	a6408521-bf0e-3b68-9f35-32ff1c609ab8
+16	DCC	13	0	1992	f	\N	dc560160-b9a5-3579-9c07-5920e815455a
+70	DVDplus (CD side)	47	0	1999	t	The CD layer of a DVDplus. The DVD layer should be added as a separate medium.	d047545e-c13a-33b4-a1cc-4cc12d6e28c6
+68	DVDplus (DVD-Audio side)	47	2	1999	f	The DVD (audio) layer of a DVDplus. The CD layer should be added as a separate medium.	d38fffa4-87b1-3ec8-8dae-8d739ec1f300
+5	LaserDisc	\N	14	1978	f	\N	8383eae1-ae79-30c2-8753-a7ed615ead84
+37	HQCD	1	5	2008	t	\N	fb8e91c7-16e3-3e29-98be-1dda0a473146
+34	8cm CD	1	2	1982	t	\N	86071488-c73d-31f9-be48-5795cb490c86
+57	SHM-SACD	3	1	2010	t	\N	6714d4b0-5669-354c-84fa-22d1f1a0fcae
+31	12" Vinyl	7	2	1931	f	\N	3e9080b0-5e6c-34ab-bd15-f526b6306a64
+40	8cm CD+G	39	0	\N	t	\N	9f11c690-3b69-3585-9c40-1558d3ecb5ce
+30	10" Vinyl	7	1	1931	f	\N	3155d2b6-52fd-3952-bda3-bd7c429d038d
+41	CDV	\N	11	1987	t	\N	da35a223-d4da-3a29-8a86-b50462452b72
+164	microSD	62	0	2005	f	\N	bcd4ec0a-d880-4dfc-8b32-ccf53cc46c59
+43	Data CD	1	0	\N	f	\N	37cceb6f-7ca2-321f-b2c5-12312a1a1df1
+52	7" Flexi-disc	51	0	1962	f	\N	da961db2-0ec7-316d-b6f4-5fddba1ca401
+29	7" Vinyl	7	0	1931	f	\N	1d5a48e4-e94a-36dc-84e2-0c5f9f880aa7
+45	Playbutton	13	0	2011	f	\N	aa6e7005-53d9-3793-a5bd-c5372a3981c3
+50	Edison Diamond Disc	13	0	1912	f	\N	1a3a0a66-3c79-3cf9-b7be-fedb00d5ec1d
+48	VinylDisc	13	0	2007	t	\N	fb6e30d8-db2b-3424-a560-dd4146370886
+62	SD Card	\N	14	1999	f	\N	25637275-fb7c-3315-b8a8-f561bef283fc
+7	Vinyl	73	0	1931	f	\N	10e17707-9751-3aaf-95b2-2432acd5374c
+13	Other	\N	99	\N	t	\N	3408c8ed-b520-3a80-be3b-7fa855665346
+59	VHD	13	0	1983	f	Video High Density (VHD) was a videodisc format which was marketed predominantly in Japan by JVC.	cc98ca24-3ae0-35fd-b311-94e0423a78a7
+58	Pathé disc	13	0	1906	f	90 rpm, vertical-cut shellac discs, produced by the Pathé label from 1906 to 1932.	34cc287c-c448-3fe4-90d6-ed3a6fa35fe5
+60	CED	13	0	1981	f	The Capacitance Electronic Disc (CED) is an analog video disc playback system developed by RCA, in which video and audio could be played back on a TV set using a special needle and high-density groove system similar to phonograph records.	38910592-1be4-371d-b34d-2df852c8b9ea
+63	Hybrid SACD (CD layer)	38	0	1999	t	The CD layer of a hybrid SACD. The SACD layer should be added as a separate medium.	1a168dbd-d7ce-381d-a38a-3948de2cb4d6
+64	Hybrid SACD (SACD layer)	38	1	1999	f	The SACD layer of a hybrid SACD. The CD layer should be added as a separate medium.	2ee0ef3d-5c51-37ec-bbd9-0dcd72005174
+65	DualDisc (DVD-Audio side)	4	2	2004	f	The DVD (audio) layer of a DualDisc. The CD layer should be added as a separate medium.	8b96a5a6-0f07-3095-8cb9-a85e888acd46
+66	DualDisc (DVD-Video side)	4	1	2004	f	The DVD (video) layer of a DualDisc. The CD layer should be added as a separate medium.	bd5365d8-3790-3a72-8cd8-480dc12ec483
+67	DualDisc (CD side)	4	0	2004	t	The CD layer of a DualDisc. The DVD layer should be added as a separate medium.	1582d6aa-7109-377c-a124-c016facccb10
+71	8" LaserDisc	5	0	1978	f	\N	1bb6e33f-6ff6-4449-b407-04cc7a598945
+72	12" LaserDisc	5	0	1978	f	\N	fc50ccd4-86fd-4697-8a20-dabe98d62ad5
+24	Betamax	13	0	1975	f	\N	783f6231-1113-306a-9730-31f788027ffb
+74	PlayTape	9	0	1966	f	\N	d089612f-f195-4549-a6d1-b774cfe7d6ef
+94	Data DVD	2	0	1995	f	\N	bf0c91f8-381e-4d81-8c2e-1ff58f3694fa
+53	Shellac	73	1	1895	f	Shellac records were the most predominant type of gramophone record during the first half of the 20th century.	1278c691-269c-3238-8bef-4582921ad7ff
+20	Blu-ray	\N	8	2006	f	\N	c693c05b-3316-3d69-afc2-5e2bc455bffc
+75	HiPac	9	0	1971	f	\N	53b29c32-2bb4-49b0-ba33-aec7b49fd28d
+76	Floppy Disk	13	0	1972	f	\N	d77bf383-553c-43c7-a94b-b112668fdc57
+92	DVD-R Video	2	1	1997	f	\N	c28a0f2e-a61e-4236-879a-5ff92ad33695
+78	8-Track Cartridge	9	0	1964	f	\N	49b49ca7-d2d8-4d36-a7dd-d61363ee3697
+77	Zip Disk	76	0	1994	f	\N	125fb6e6-fa77-4914-94d2-822e598e4e98
+79	Blu-ray-R	20	0	\N	f	\N	96fc0e15-e24a-41f0-879c-96c0538809be
+80	VinylDisc (DVD side)	48	0	2007	f	The DVD side of a vinyl + DVD VinylDisc. The vinyl side should be added as a separate medium.	2f334ecc-af5b-4894-a5af-bfe5a94a3e5b
+81	VinylDisc (Vinyl side)	48	0	2007	f	The vinyl side of a VinylDisc. The CD or DVD side should be added as a separate medium.	ab3f704c-b7fd-4092-b60d-bedb93ebac3c
+82	VinylDisc (CD side)	48	0	2007	t	The CD side of a vinyl + CD VinylDisc. The vinyl side should be added as a separate medium.	949e1cd7-af5a-4b6b-abda-87416244b1cf
+33	CD-R	1	1	1988	t	\N	18805d5b-ff3a-3bc0-9b1f-188cc06415c8
+39	CD+G	1	6	1985	t	\N	f59d2658-7fa7-377e-b2f1-fda418284d2c
+69	DVDplus (DVD-Video side)	47	1	1999	f	The DVD (video) layer of a DVDplus. The CD layer should be added as a separate medium.	ccef53b5-d41a-391b-b1b3-9ca9a96498e6
+36	SHM-CD	1	4	2007	t	\N	4856b1c6-674d-3f68-a1dd-8ae517e8b566
+54	10" Shellac	53	1	1901	f	\N	6954724d-b8f3-39a4-b724-d2eec6ac674b
+56	7" Shellac	53	0	1897	f	\N	682f97ed-517e-3a86-ad66-33f98e864346
+55	12" Shellac	53	2	1903	f	\N	af174b17-9469-3771-9555-115ae415e587
+38	Hybrid SACD	3	1	1999	t	\N	8a756eda-09f6-3381-8fac-15065c7d5ed9
+95	KiT Album	13	0	2017	f	A "digital collectible" device, mostly used for k-pop music, that is connected to a phone via Bluetooth or headphone jack and unlocks the release for listening in a companion app for a limited period of time.	299854ce-ca2b-4731-93b9-141586742797
+46	Download Card	13	0	\N	f	A card (or other similar physical support) that doesn't contain the music itself directly, but provides a code to download it digitally. Often bundled with physical releases but sometimes sold as a standalone item (especially in Asia).	11cad59d-0f90-387f-88a2-752afeb88f5d
+128	DataPlay	13	0	2002	f	A very small optical disc in a protective case that was intended for portable listening. It did not find commercial success, but a few albums were released in the format in the early 00s.	a092ba8e-8bc6-46fb-aeb2-97ff06002c2c
+131	Betacam SP	13	0	1986	f	A video format used in the 1980s and 90s for professional work, including television and video archival.	d5c3429a-69f6-454d-a72f-13fdf78d7a05
+44	DTS CD	1	0	1992	t	\N	ccacd435-d33f-3104-98c9-cbe04d037c36
+12	Digital Media	\N	0	\N	f	\N	907a28d9-b3b2-3ef6-89a8-7b18d91d4794
+83	Microcassette	8	0	1969	f	\N	7bdf614f-da65-4dd6-96ca-a165708470bb
+35	Blu-spec CD	1	3	2008	t	\N	038ec24e-5d01-3a8c-817e-c51a515b1875
+61	Copy Control CD	1	0	2001	t	Copy Control CD (CCCD) is an umbrella term for CDs released circa 2001-2006 containing software that is ostensibly designed to prevent the CD from being ripped. There are a number of software variants: the most well-known are Macrovision's Cactus Data Shield (CDS) and SunnComm's MediaMax.	1a648190-5c75-3b74-b8c5-8150c97af0f5
+18	DVD-Audio	2	0	2000	f	\N	9d7fa8ab-3bb4-36f6-a8c6-b7eed946fc4b
+19	DVD-Video	2	1	1996	f	\N	bb71fd58-ff93-32b4-a201-4ad1b2a80e5f
+23	SVCD	22	0	1998	f	\N	368f05ec-97d2-320f-9057-7a69962e5fa8
+22	VCD	\N	11	1993	f	\N	f74cb37d-d0a8-3df3-bb69-04b70361259a
+91	5.25" Floppy Disk	76	0	1976	f	\N	6e0fab4d-b888-4285-9848-7dbb6827c5d4
+86	Hybrid SACD (SACD layer, multichannel)	64	0	1999	f	This represents the multichannel table of contents on a hybrid SACD's SACD layer.	fa46fab8-4c29-495a-b2fa-7bc14257dcca
+93	Data DVD-R	2	1	1997	f	\N	a89246ae-697c-4c26-b5e8-bdf393e8d317
+85	SACD (multichannel)	3	0	1999	f	This represents the multichannel table of contents on a SACD.	3146aab3-e0cb-4571-898e-c25cffac0010
+89	SHM-SACD (2 channels)	57	0	2010	f	This represents the 2 channel (stereo/mono) table of contents on a SHM-SACD.	0c722fb0-2106-44c5-9f1c-5c62dbbb476e
+88	SHM-SACD (multichannel)	57	0	2010	f	This represents the multichannel table of contents on a SHM-SACD.	46f1a40b-4377-4097-8b89-9930057175a7
+87	Hybrid SACD (SACD layer, 2 channels)	64	0	1999	f	This represents the 2 channel (stereo/mono) table of contents on a hybrid SACD's SACD layer.	6c521ee3-f723-41de-bc6b-ec3621b9ffa9
+84	SACD (2 channels)	3	0	1999	f	This represents the 2 channel (stereo/mono) table of contents on a SACD.	dd9f171b-9099-438f-a410-3bdce00ce139
+28	UMD	13	0	2004	f	\N	7c4397a2-1b00-35c0-8dbe-f06c474df4b8
+129	Mixed Mode CD	1	0	1982	t	A CD that contains both audio and data in the same session. The data is often in the first track, that will have to be skipped in many audio players. Relatively common in old video game CDs.	184c65db-2619-4577-be0c-5dcc1d630c5d
+42	Enhanced CD	1	0	1995	t	A CD that contains two sessions, one with audio and one with data. Since they are properly separated, audio players will not try to play the data session and it won't be part of the disc ID for the CD.	8a08dc62-1aa2-34de-a904-fa467c53052c
+130	DualDisc (DVD side)	4	3	2004	f	The DVD layer of a DualDisc, when it's unclear whether it should be DVD-Audio or DVD-Video (or it includes both). The CD layer should be added as a separate medium.	76c22700-45b7-4878-b33e-1710861bd70d
+26	USB Flash Drive	\N	14	2000	f	\N	d9a5f2e3-6a87-3f0b-9623-95d60d94faff
+17	HD-DVD	13	0	2006	f	\N	d13fa46d-9a5f-36b4-9d7d-fcdc12b71dce
+21	VHS	\N	14	1976	f	\N	ec44fdc0-739e-386a-818c-dafa1215b487
+27	slotMusic	164	0	2008	f	\N	2c8efa62-d96c-356e-a28f-ccaf4117e67e
+165	Minimax CD	1	3	\N	t	A standard size CD with the playing/data area of a 8cm CD; the remaining area is empty clear/translucent plastic, sometimes printed.	60d7410f-b961-4518-8423-9df9df539255
+207	3" Vinyl	7	4	2004	f	One-sided 3" vinyl records to be played with purpose-built players; originally developed in Japan and now mostly found as a Record Store Day curiosity.	a7e2de59-dcd7-4ea6-a3b2-cac9b7ee3ea9
+167	Minimax DVD	2	3	\N	f	A standard size DVD with the playing/data area of a 8cm MiniDVD; the remaining area is empty clear/translucent plastic, sometimes printed.	d4946d8e-d8aa-48c8-accd-693f86378de2
+168	MiniDVD-Audio	166	0	\N	f	\N	fe687b4d-b819-4747-ad33-bff6fbd9ec00
+169	MiniDVD-Video	166	0	\N	f	\N	8a81ae79-8a3b-4d87-8c6c-14b5ffdbe754
+170	Minimax DVD-Audio	167	0	\N	f	\N	e889791c-1fc6-4155-9c07-19f5947b555f
+171	Minimax DVD-Video	167	0	\N	f	\N	83624f88-292b-4dcd-b358-e26a7b66cbe2
+203	Acetate	73	2	\N	f	\N	b2c6d333-dbcb-4000-b96c-20e614d1befd
+204	7" Acetate	203	0	\N	f	\N	0d094c3a-a839-42fa-9e8b-d830cafdadc1
+205	10" Acetate	203	1	\N	f	\N	7e0d0a4e-9ff0-49f7-954d-c2aaa7d6dd44
+206	12" Acetate	203	2	\N	f	\N	0e84d5d1-34f1-420b-8f48-fbf9c6f9ef3e
+166	MiniDVD	2	2	\N	f	8cm DVD, often used for video singles.	b0f9a962-39f1-4cc7-927b-82835d8ed734
+73	Phonograph record	\N	2	1886	f	Flat discs with grooves used in phonographs/gramophones. For shellac and vinyl records, use that specifically.	3f9883d5-12dc-4866-a4e1-b240065c2155
+25	HDCD	1	0	1993	t	\N	8759db4e-8451-33c0-8a8f-05e5f95f192e
+209	CD-i	1	6	1988	f	A CD format that combines data/video and audio, used for different purposes in the 1990s including, in some cases, music releases with accompanying video content.	2119a23b-24cc-46d2-b1cf-e61b3b039db3
+210	8cm CD-R	34	0	1988	t	\N	1bd868e8-3858-4954-8df7-2463f865b3c9
+208	ROM cartridge	9	0	1976	f	A read only memory cartridge or card, such as the ones used by early home computers and some video game systems.	03d69fea-a3ab-4d89-8386-27784f5e8137
+211	Ultra HD Blu-ray	20	0	2015	f	Enhanced version of Blu-ray supporting 4K Ultra HD video which is not compatible with all Blu-ray players.	b749434b-740e-4952-a3c1-a53ff10c2d95
+1	CD	\N	1	1982	t	\N	9712d52a-4509-3d4b-a1a2-67c88c643e31

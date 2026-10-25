@@ -1,0 +1,16 @@
+{
+  "name": "@musicbrainz-rs/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "musicbrainz-rs workspace: Rust crates and the Node.js binding.",
+  "license": "FTWPL",
+  "packageManager": "yarn@4.5.1",
+  "workspaces": [
+    "crates/bindings/musicbrainz-node"
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -A -pt run build",
+    "test": "yarn workspaces foreach -A -p run test",
+    "typecheck": "yarn workspaces foreach -A -p run typecheck"
+  }
+}

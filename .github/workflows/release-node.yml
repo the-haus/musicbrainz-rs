@@ -1,0 +1,253 @@
+# Publish @musicbrainz-rs/node: one root package (JS, types, loader) plus one
+# platform package per napi triple, which the root package lists as
+# optionalDependencies so npm installs only the one that matches. Called by
+# release.yml for a v* tag; run it by hand for a dry run.
+#
+# 1. build: each binary is built on a runner of its own OS and
+#    architecture, and the test suite runs against it there. Linux builds
+#    run in Node images (Debian bullseye: glibc 2.31 and up; Alpine: musl).
+# 2. pack: the root and platform packages are assembled with napi-rs'
+#    create-npm-dir / artifacts and packed into tarballs.
+# 3. install: on every platform, the tarballs are installed into an empty
+#    project on the oldest supported Node and used from there.
+# 4. publish: exactly those tarballs, platform packages first.
+# Artifacts are kept for a day: they only carry files from one job to the
+# next, and the organisation's artifact storage is shared.
+name: release-node
+
+on:
+  workflow_call:
+    inputs:
+      dry-run:
+        type: boolean
+        default: false
+    secrets:
+      NPM_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build everything but do not publish.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build ${{ matrix.triple }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, triple: linux-x64-gnu, image: "node:22-bullseye" }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, triple: linux-arm64-gnu, image: "node:22-bullseye" }
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl, triple: linux-x64-musl, image: "node:22-alpine" }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, triple: linux-arm64-musl, image: "node:22-alpine" }
+          - { os: macos-15-intel, target: x86_64-apple-darwin, triple: darwin-x64 }
+          - { os: macos-latest, target: aarch64-apple-darwin, triple: darwin-arm64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, triple: win32-x64-msvc }
+    defaults:
+      run:
+        working-directory: crates/bindings/musicbrainz-node
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: build and test in ${{ matrix.image }}
+        if: matrix.image
+        working-directory: .
+        env:
+          IMAGE: ${{ matrix.image }}
+          TARGET: ${{ matrix.target }}
+        run: docker run --rm -v "$PWD:/w" -w /w "$IMAGE" sh crates/bindings/musicbrainz-node/scripts/build-linux.sh "$TARGET"
+
+      - if: ${{ !matrix.image }}
+        uses: ./.github/actions/setup-rust
+        with:
+          cache-key: release-${{ matrix.triple }}
+          targets: ${{ matrix.target }}
+      - if: ${{ !matrix.image }}
+        uses: ./.github/actions/setup-node-yarn
+      - if: ${{ !matrix.image }}
+        name: yarn install
+        working-directory: .
+        run: corepack yarn install --immutable
+      - if: ${{ !matrix.image }}
+        name: build native
+        env:
+          VSCMD_ARG_TGT_ARCH: ${{ matrix.vs-arch }}
+        run: corepack yarn exec napi build --platform --release --strip --js false --target ${{ matrix.target }}
+      - if: ${{ !matrix.image }}
+        name: test
+        run: |
+          corepack yarn run build:ts
+          corepack yarn run test
+
+      - name: check the binary exists
+        shell: bash
+        run: test -f "musicbrainz-node.${{ matrix.triple }}.node"
+      - uses: actions/upload-artifact@v5
+        with:
+          name: binary-${{ matrix.triple }}
+          path: crates/bindings/musicbrainz-node/musicbrainz-node.${{ matrix.triple }}.node
+          if-no-files-found: error
+          retention-days: 1
+
+  pack:
+    name: pack
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: crates/bindings/musicbrainz-node
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-node-yarn
+      - working-directory: .
+        run: corepack yarn install --immutable
+      - run: corepack yarn run build:ts && corepack yarn run copy-license
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: binary-*
+          path: crates/bindings/musicbrainz-node/artifacts
+          merge-multiple: true
+      - run: corepack yarn exec napi create-npm-dir -t .
+      # `napi artifacts` also leaves every binary in the package root, where
+      # the root package's `files` would ship all of them to every user.
+      - run: |
+          corepack yarn exec napi artifacts --dir artifacts --dist npm
+          rm -f musicbrainz-node.*.node
+          for d in npm/*/; do cp LICENSE "$d"; done
+      # `napi artifacts` skips a missing binary silently; one missing here
+      # would publish a platform package that cannot load.
+      - name: every platform package has its binary, and the root lists them all
+        run: |
+          # shellcheck disable=SC2016 # single quotes: JS, not shell
+          node -e '
+            const fs = require("node:fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            const deps = {};
+            for (const dir of fs.readdirSync("npm")) {
+              const sub = JSON.parse(fs.readFileSync(`npm/${dir}/package.json`, "utf8"));
+              if (!fs.existsSync(`npm/${dir}/${sub.main}`)) throw new Error(`npm/${dir} has no ${sub.main}`);
+              if (sub.version !== pkg.version) throw new Error(`${sub.name} is ${sub.version}, not ${pkg.version}`);
+              // npm provenance rejects a package whose repository is not this one.
+              if (sub.repository?.url !== pkg.repository.url) throw new Error(`${sub.name} has no repository.url`);
+              deps[sub.name] = sub.version;
+            }
+            const expected = pkg.napi.triples.additional.length;
+            if (Object.keys(deps).length !== expected) throw new Error(`${Object.keys(deps).length} platform packages, expected ${expected}`);
+            pkg.optionalDependencies = deps;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            console.log(deps);
+          '
+      - name: pack the root and platform packages
+        run: |
+          mkdir -p ../../../packages
+          for d in npm/*/; do (cd "$d" && npm pack --ignore-scripts --pack-destination ../../../../../packages); done
+          npm pack --ignore-scripts --pack-destination ../../../packages
+          ls -l ../../../packages
+      - uses: actions/upload-artifact@v5
+        with:
+          name: npm-packages
+          path: packages/*.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  # The tarballs, installed the way a user would (the platform package by
+  # hand, since in a dry run it is not on the registry yet), on the oldest
+  # Node the package supports.
+  install:
+    name: install ${{ matrix.triple }}
+    needs: pack
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, triple: linux-x64-gnu, image: "node:18-bullseye" }
+          - { os: ubuntu-24.04-arm, triple: linux-arm64-gnu, image: "node:18-bullseye" }
+          - { os: ubuntu-latest, triple: linux-x64-musl, image: "node:18-alpine" }
+          - { os: ubuntu-24.04-arm, triple: linux-arm64-musl, image: "node:18-alpine" }
+          - { os: macos-15-intel, triple: darwin-x64 }
+          - { os: macos-latest, triple: darwin-arm64 }
+          - { os: windows-latest, triple: win32-x64-msvc }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: packages
+      - if: ${{ !matrix.image }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node || '18' }}
+          # Not the root package.json's Yarn 4 (setup-node would run Yarn 1).
+          package-manager-cache: false
+      - name: install and use
+        shell: bash
+        env:
+          IMAGE: ${{ matrix.image }}
+          TRIPLE: ${{ matrix.triple }}
+        run: |
+          if [ -n "$IMAGE" ]; then
+            docker run --rm -v "$PWD:/w" -w /w "$IMAGE" sh crates/bindings/musicbrainz-node/scripts/install-check.sh "$TRIPLE"
+          else
+            sh crates/bindings/musicbrainz-node/scripts/install-check.sh "$TRIPLE"
+          fi
+
+  publish:
+    name: publish
+    needs: install
+    if: ${{ !inputs.dry-run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: packages
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          # Not the root package.json's Yarn 4 (setup-node would run Yarn 1).
+          package-manager-cache: false
+      # Trusted publishing (OIDC) needs npm 11.5.1 or later.
+      - run: npm install -g npm@11
+      # Platform packages first, so the root package never points at missing
+      # ones. Prereleases (1.2.0-rc.1) go to the "next" dist-tag; versions
+      # already on the registry are skipped, so a failed release can be re-run.
+      - name: publish platform packages, then the root package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # npm accepts provenance only from a public repository.
+          PROVENANCE: ${{ !github.event.repository.private }}
+        shell: bash
+        working-directory: packages
+        run: |
+          publish() {
+            local manifest name version tag
+            manifest=$(tar -xzOf "$1" package/package.json)
+            name=$(node -p 'JSON.parse(process.argv[1]).name' "$manifest")
+            version=$(node -p 'JSON.parse(process.argv[1]).version' "$manifest")
+            tag=latest; [[ "$version" == *-* ]] && tag=next
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "$name@$version is already published"
+            else
+              local args=(--access public --tag "$tag")
+              [[ "$PROVENANCE" == true ]] && args+=(--provenance)
+              npm publish "$1" "${args[@]}"
+            fi
+          }
+          for f in musicbrainz-rs-node-[a-z]*.tgz; do publish "$f"; done
+          for f in musicbrainz-rs-node-[0-9]*.tgz; do publish "$f"; done

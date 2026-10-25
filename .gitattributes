@@ -1,0 +1,8 @@
+# LF everywhere, on every platform: the tests compare fixtures byte for byte.
+* text=auto eol=lf
+
+# Compressed dumps and binaries.
+*.bz2 binary
+*.gz binary
+*.zst binary
+*.node binary

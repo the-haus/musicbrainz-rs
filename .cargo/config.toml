@@ -1,0 +1,8 @@
+# Align loops to 64 bytes. The bzip2 block decoder spends its time in a few
+# tight loops, and their speed depended on where unrelated code happened to
+# put them: adding code elsewhere made the same decoder 4% slower (Apple M1
+# Max, one thread, 0.3.0). Aligned, its speed no longer depends on the rest
+# of the binary. A RUSTFLAGS environment variable replaces this; include the
+# flag there too (see scripts/build-linux.sh).
+[build]
+rustflags = ["-C", "llvm-args=-align-loops=64"]
