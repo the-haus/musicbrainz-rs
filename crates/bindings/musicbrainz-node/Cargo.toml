@@ -9,7 +9,11 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["mimalloc"]
+# Not by default: in an addon (a library Node dlopen()s), mimalloc's
+# initial-exec thread-locals and DuckDB's take more static TLS than glibc
+# leaves for libraries loaded late ("cannot allocate memory in static TLS
+# block" on Linux). DuckDB allocates most of the memory itself anyway.
+default = []
 # mimalloc as the global allocator, except on macOS (see src/lib.rs).
 mimalloc = ["dep:mimalloc"]
 

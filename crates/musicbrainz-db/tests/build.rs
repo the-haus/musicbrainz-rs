@@ -188,6 +188,20 @@ fn builds_queries_and_refreshes() {
 }
 
 #[test]
+fn builds_under_a_small_memory_limit() {
+    // DuckDB's CSV buffers are sized from the longest line allowed: a build
+    // must fit in the little memory a small container gives it.
+    let root = tempfile::tempdir().unwrap();
+    let t1 = v1();
+    let t1: Vec<(&str, &str)> = t1.iter().map(|(a, b)| (*a, b.as_str())).collect();
+    let src = export(root.path(), "20261014-001756", &t1);
+    let mut o = opts(&src, &root.path().join("small.duckdb"));
+    o.memory_limit = Some("256MB".into());
+    let stats = build(o).unwrap();
+    assert_eq!(stats.tables.iter().find(|t| t.name == "artist").unwrap().rows, 2);
+}
+
+#[test]
 fn only_some_tables_and_wrong_schemas() {
     let root = tempfile::tempdir().unwrap();
     let t1 = v1();

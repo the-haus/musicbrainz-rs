@@ -157,12 +157,21 @@ fn typed(c: &Column, raw: &str, lenient: bool) -> String {
     }
 }
 
+/// The longest line a dump file may have (8 MiB; MusicBrainz's core rows are
+/// far shorter). DuckDB's CSV buffers are sized from it (16 times it, unless
+/// `buffer_size` says), so it is kept small enough for a build under a 1 GB
+/// memory limit.
+const MAX_LINE: usize = 8 << 20;
+
+/// DuckDB's CSV read buffer (its default, 32 MiB).
+const CSV_BUFFER: usize = 32 << 20;
+
 /// `read_csv` of a dump file, every field a VARCHAR named `c0`, `c1`, …
 pub fn read_raw(file: &Path, columns: usize) -> String {
     let cols: Vec<String> = (0..columns).map(|i| format!("'c{i}': 'VARCHAR'")).collect();
     format!(
         "read_csv({}, delim = '\\t', quote = '', escape = '', header = false, nullstr = '\\N', \
-         auto_detect = false, max_line_size = 67108864, columns = {{{}}})",
+         auto_detect = false, max_line_size = {MAX_LINE}, buffer_size = {CSV_BUFFER}, columns = {{{}}})",
         literal(&file.to_string_lossy()),
         cols.join(", ")
     )

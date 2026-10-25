@@ -18,10 +18,6 @@ if [ -f /etc/alpine-release ]; then
   # dynamic definition".
   # RUSTFLAGS replaces .cargo/config.toml's flags: keep its loop alignment.
   export RUSTFLAGS="${RUSTFLAGS:-} -C target-feature=-crt-static -C llvm-args=-align-loops=64"
-  # mimalloc's default initial-exec TLS fails the same way under dlopen()
-  # ("(null): initial-exec TLS resolves to dynamic definition"); musl has no
-  # static-TLS surplus for libraries loaded after startup.
-  FEATURES="mimalloc/local_dynamic_tls"
 fi
 curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
 # shellcheck source=/dev/null

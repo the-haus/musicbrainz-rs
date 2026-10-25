@@ -77,8 +77,6 @@ jobs:
         run: corepack yarn install --immutable
       - if: ${{ !matrix.image }}
         name: build native
-        env:
-          VSCMD_ARG_TGT_ARCH: ${{ matrix.vs-arch }}
         run: corepack yarn exec napi build --platform --release --strip --js false --target ${{ matrix.target }}
       - if: ${{ !matrix.image }}
         name: test
@@ -186,7 +184,7 @@ jobs:
       - if: ${{ !matrix.image }}
         uses: actions/setup-node@v5
         with:
-          node-version: ${{ matrix.node || '18' }}
+          node-version: "18"
           # Not the root package.json's Yarn 4 (setup-node would run Yarn 1).
           package-manager-cache: false
       - name: install and use

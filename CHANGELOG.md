@@ -22,12 +22,19 @@ the command line and Node.js.
   `mb_partial_date` and `mb_wikidata_id` macros, `mb_meta` and `mb_tables`;
   refreshes that build beside, diff (`mb_changes`: added, changed with the
   tables that changed, removed, merged) and swap; JSON queries in batches
-  from a connection pool; consistent subsets written back as exports.
+  from a connection pool, and sessions for temporary tables; consistent
+  subsets written back as exports; `upgrade` for an older database's views
+  and macros; `lenient` builds for hand-made test dumps; builds that fit a
+  small memory limit (DuckDB's CSV buffers kept small). The full core export
+  builds in 3 min 56 s (177 tables, 269 M rows, indexed).
 - **CLI** (`musicbrainz`): `latest`, `download`, `info`, `members`,
-  `extract`, `build`, `refresh`, `diff`, `query`, `subset`, `schema`.
+  `extract`, `build`, `refresh`, `diff`, `upgrade`, `query`, `subset`,
+  `schema`.
 - **Node.js** (`@musicbrainz-rs/node`): `buildDatabase`, `refreshDatabase`,
   `diffDatabases`, `downloadExport`, `extractArchive`, `exportInfo`,
   `archiveMembers`, `latestExport`, `schema`; `MusicBrainzDatabase` with
-  `query`, `querySync`, `stream` (backpressure-bounded), lookups by id, MBID
-  (merges followed) and foreign key, relationships, credits, aliases, area
-  countries, web-service-shaped entities, and `changes`.
+  `query`, `querySync`, `stream` (backpressure-bounded), sessions, lookups
+  by id, MBID (merges followed) and foreign key, relationships, credits,
+  aliases, area countries, web-service-shaped entities, and `changes`.
+  Prebuilt for Linux (glibc and musl; x64 and arm64), macOS (x64 and arm64)
+  and Windows (x64).

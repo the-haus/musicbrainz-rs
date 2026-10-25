@@ -146,6 +146,10 @@ The lookups (`byId`, `byGid`, `resolveGids`, `rowsOf`, `relationships`,
 `urls`, `credits`, `aliases`, `areaCountries`) and `entities` are TypeScript
 over SQL: each is one query for all the keys asked, whatever their number.
 
-The addon uses the system allocator on macOS and mimalloc elsewhere: on macOS
-mimalloc keeps its heaps in fixed TLS slots of the process, and two addons that
-bundle it crash when loaded together.
+The addon uses the system allocator (DuckDB allocates most of the memory
+itself). mimalloc, which the CLI uses, is a feature of the addon off by
+default: in a library Node `dlopen()`s, its initial-exec thread-locals and
+DuckDB's take more static TLS than glibc leaves for late-loaded libraries
+("cannot allocate memory in static TLS block"), and on macOS it keeps its
+heaps in fixed TLS slots of the process, so two addons that bundle it crash
+when loaded together.
