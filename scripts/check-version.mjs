@@ -23,6 +23,12 @@ if (node.version !== version) problems.push(`@musicbrainz-rs/node is ${node.vers
 if (!new RegExp(`^## ${version.replaceAll(".", "\\.")}( |$)`, "m").test(read("CHANGELOG.md"))) {
   problems.push(`CHANGELOG.md has no "## ${version}" section`);
 }
+// Every binary release-node.yml builds needs a platform package.
+const workflow = read(".github/workflows/release-node.yml");
+const built = [...workflow.matchAll(/target: ([\w-]+), triple:/g)].map((m) => m[1]).sort();
+const listed = [...node.napi.triples.additional].sort();
+if (built.join() !== listed.join())
+  problems.push(`release-node.yml builds ${built.join(", ")}; package.json's napi triples are ${listed.join(", ")}`);
 const tag = process.argv[2];
 if (tag && tag.replace(/^v/, "") !== version) problems.push(`tag ${tag} is not v${version}`);
 
