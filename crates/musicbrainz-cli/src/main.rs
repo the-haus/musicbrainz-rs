@@ -181,9 +181,9 @@ struct BuildArgs {
     /// Replace an existing database.
     #[arg(long)]
     replace: bool,
-    /// Leave out the schema's NOT NULL constraints (for hand-made test dumps).
+    /// For hand-made test dumps: no NOT NULLs, MBID columns as text.
     #[arg(long)]
-    no_constraints: bool,
+    lenient: bool,
 }
 
 type Fallible<T = ()> = Result<T, Box<dyn std::error::Error>>;
@@ -221,7 +221,7 @@ fn build_options(a: BuildArgs, stop: Arc<AtomicBool>) -> Fallible<BuildOptions> 
     o.threads = a.threads;
     o.memory_limit = a.memory;
     o.replace = a.replace;
-    o.constraints = !a.no_constraints;
+    o.lenient = a.lenient;
     o.stop = Some(stop);
     let tty = io::stderr().is_terminal();
     let last = std::sync::Mutex::new(Instant::now());

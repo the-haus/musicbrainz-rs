@@ -45,7 +45,7 @@ console.log(artist?.name, artist?.area?.name, artist?.lifeSpan);
 | `workDir`, `keepTables` | where tables are extracted to (default `<database>.work`), and whether to keep them |
 | `schemaDir`, `schemaCache`, `offline` | the schema SQL to read the dump with (default: bundled for its `SCHEMA_SEQUENCE`, or fetched from musicbrainz-server into `schemaCache`) |
 | `threads`, `memoryLimit` | DuckDB's (and bzip2's) threads, DuckDB's memory limit (`"8GB"`) |
-| `constraints` | make the schema's `NOT NULL`s (default true; off for hand-made test dumps) |
+| `lenient` | for hand-made test dumps: no `NOT NULL`s, MBID columns as text |
 | `replace` | replace an existing database (refused otherwise) |
 
 Tables already taken out are read where they are; the rest are decompressed

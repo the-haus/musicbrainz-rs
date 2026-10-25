@@ -111,9 +111,18 @@ CREATE OR REPLACE MACRO mb_wikidata_id(url) AS
     regexp_extract(url, '^https?://(?:www\.)?wikidata\.org/(?:wiki|entity)/(Q[0-9]+)$', 1);
 "#;
 
-/// `CREATE TABLE` with DuckDB types (`NOT NULL` where the schema says,
-/// when `not_null`).
-pub fn create_table(t: &Table, not_null: bool) -> String {
+/// A column's type in a database built `lenient`ly: MBIDs as text.
+fn column_type(c: &Column, lenient: bool) -> &'static str {
+    if lenient && c.kind == Kind::Uuid {
+        "VARCHAR"
+    } else {
+        duck_type(c)
+    }
+}
+
+/// `CREATE TABLE` with DuckDB types and the schema's `NOT NULL`s; `lenient`
+/// (for hand-made test dumps): no `NOT NULL`s, and MBIDs as text.
+pub fn create_table(t: &Table, lenient: bool) -> String {
     let cols: Vec<String> = t
         .columns
         .iter()
@@ -121,8 +130,8 @@ pub fn create_table(t: &Table, not_null: bool) -> String {
             format!(
                 "{} {}{}",
                 ident(&c.name),
-                duck_type(c),
-                if c.nullable || !not_null { "" } else { " NOT NULL" }
+                column_type(c, lenient),
+                if c.nullable || lenient { "" } else { " NOT NULL" }
             )
         })
         .collect();
@@ -130,10 +139,11 @@ pub fn create_table(t: &Table, not_null: bool) -> String {
 }
 
 /// The expression that types raw field `raw` (a VARCHAR) as its column.
-fn typed(c: &Column, raw: &str) -> String {
+fn typed(c: &Column, raw: &str, lenient: bool) -> String {
     let ty = duck_type(c);
     match c.kind {
         Kind::Text | Kind::TextArray | Kind::Other => format!("mb_unescape({raw})"),
+        Kind::Uuid if lenient => format!("mb_unescape({raw})"),
         Kind::Json => format!("CAST(mb_unescape({raw}) AS JSON)"),
         Kind::Point => format!(
             "CASE WHEN {raw} IS NULL THEN NULL ELSE [CAST(split_part(trim({raw}, '()'), ',', 1) AS DOUBLE), \
@@ -158,13 +168,14 @@ pub fn read_raw(file: &Path, columns: usize) -> String {
     )
 }
 
-/// `INSERT INTO <table> SELECT <typed fields> FROM read_csv(<file>)`.
-pub fn load_table(t: &Table, file: &Path) -> String {
+/// `INSERT INTO <table> SELECT <typed fields> FROM read_csv(<file>)`
+/// (`lenient`: as [`create_table`]).
+pub fn load_table(t: &Table, file: &Path, lenient: bool) -> String {
     let exprs: Vec<String> = t
         .columns
         .iter()
         .enumerate()
-        .map(|(i, c)| typed(c, &format!("c{i}")))
+        .map(|(i, c)| typed(c, &format!("c{i}"), lenient))
         .collect();
     format!(
         "INSERT INTO {} SELECT {} FROM {}",
@@ -235,12 +246,15 @@ mod tests {
     fn artist_sql() {
         let s = Schema::bundled();
         let artist = s.table("artist").unwrap();
-        let create = create_table(artist, true);
-        assert!(!create_table(artist, false).contains("NOT NULL"));
+        let create = create_table(artist, false);
+        let lenient = create_table(artist, true);
+        assert!(!lenient.contains("NOT NULL"));
+        assert!(lenient.contains("\"gid\" VARCHAR"));
+        assert!(load_table(artist, Path::new("a"), true).contains("mb_unescape(c1)"));
         assert!(create.starts_with("CREATE TABLE \"artist\" (\"id\" INTEGER NOT NULL, \"gid\" UUID NOT NULL"));
         assert!(create.contains("\"begin_date_year\" SMALLINT,"));
         assert!(create.contains("\"last_updated\" TIMESTAMPTZ,"));
-        let load = load_table(artist, Path::new("/x/it's/artist"));
+        let load = load_table(artist, Path::new("/x/it's/artist"), false);
         assert!(load.contains("CAST(c0 AS INTEGER), CAST(c1 AS UUID), mb_unescape(c2)"));
         assert!(load.contains("'/x/it''s/artist'"));
         let idx = indexes(artist, IndexLevel::Foreign);
@@ -249,6 +263,6 @@ mod tests {
         assert!(idx.iter().any(|i| i.contains("(\"area\")")));
         assert_eq!(indexes(artist, IndexLevel::Keys).len(), 2);
         let caa = s.table("cover_art_archive.cover_art").unwrap();
-        assert!(create_table(caa, true).starts_with("CREATE TABLE \"cover_art_archive\".\"cover_art\""));
+        assert!(create_table(caa, false).starts_with("CREATE TABLE \"cover_art_archive\".\"cover_art\""));
     }
 }

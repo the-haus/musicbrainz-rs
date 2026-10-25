@@ -130,6 +130,9 @@ export abstract class Queries {
   /** Whether a table was loaded. */
   abstract hasTable(name: string): boolean;
 
+  /** Whether the database was built `lenient` (MBIDs as text). */
+  abstract isLenient(): boolean;
+
   static #params(params: readonly Param[] | undefined): string | undefined {
     return params && params.length ? JSON.stringify(params) : undefined;
   }
@@ -248,12 +251,14 @@ export abstract class Queries {
     gids: Iterable<string>,
   ): Promise<Map<string, { id: number; gid: string; redirected: boolean }>> {
     const e = entity(type);
-    const asked = [...new Set([...gids].map((g) => g.toLowerCase()))].filter((g) => GID.test(g));
+    // A lenient database's MBIDs are text, and need not look like UUIDs.
+    const text = this.isLenient();
+    const asked = [...new Set([...gids].map((g) => g.toLowerCase()))].filter((g) => text || GID.test(g));
     const out = new Map<string, { id: number; gid: string; redirected: boolean }>();
     if (!asked.length) return out;
     const redirects = this.hasTable(`${e}_gid_redirect`);
     const rows = await this.query<{ asked: string; id: number; gid: string; redirected: boolean }>(
-      `WITH asked AS (SELECT unnest(?::UUID[]) AS g)
+      `WITH asked AS (SELECT unnest(${text ? `from_json(?, '["VARCHAR"]')` : "?::UUID[]"}) AS g)
        SELECT CAST(a.g AS VARCHAR) AS asked, t.id, CAST(t.gid AS VARCHAR) AS gid, false AS redirected
        FROM asked a JOIN ${quoted(e)} t ON t.gid = a.g
        ${
@@ -533,6 +538,7 @@ export abstract class Queries {
 export class MusicBrainzDatabase extends Queries {
   #db: NativeDatabase;
   #tables: Set<string> | undefined;
+  #lenient: boolean | undefined;
   readonly path: string;
 
   private constructor(native: NativeDatabase, path: string) {
@@ -558,6 +564,11 @@ export class MusicBrainzDatabase extends Queries {
   hasTable(name: string): boolean {
     this.#tables ??= new Set(Object.keys(this.info().tables));
     return this.#tables.has(name);
+  }
+
+  isLenient(): boolean {
+    this.#lenient ??= this.info().meta.lenient === "true";
+    return this.#lenient;
   }
 
   /**
@@ -603,6 +614,10 @@ export class Session extends Queries {
 
   hasTable(name: string): boolean {
     return this.database.hasTable(name);
+  }
+
+  isLenient(): boolean {
+    return this.database.isLenient();
   }
 
   /** Closes it; its temporary tables go with it. */

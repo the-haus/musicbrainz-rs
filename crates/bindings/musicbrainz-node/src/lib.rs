@@ -521,7 +521,8 @@ struct BuildJson {
     memory_limit: Option<String>,
     #[serde(default)]
     replace: bool,
-    constraints: Option<bool>,
+    #[serde(default)]
+    lenient: bool,
     #[serde(default)]
     keep_previous: bool,
 }
@@ -542,7 +543,7 @@ fn build_options(json: &str, s: &Sender) -> std::result::Result<(BuildOptions, b
     o.threads = j.threads.unwrap_or(0);
     o.memory_limit = j.memory_limit;
     o.replace = j.replace;
-    o.constraints = j.constraints.unwrap_or(true);
+    o.lenient = j.lenient;
     o.stop = Some(s.stop.clone());
     let cb = s.cb.clone();
     o.on_progress = Some(Arc::new(move |p: &BuildProgress| {

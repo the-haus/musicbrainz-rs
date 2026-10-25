@@ -59,10 +59,11 @@ export interface BuildOptions {
   /** Replace an existing database ({@link buildDatabase} refuses otherwise). */
   replace?: boolean;
   /**
-   * Make the schema's `NOT NULL` constraints (default true). Off, a dump
-   * that leaves such columns `\N` (a hand-made test dump) still loads.
+   * For hand-made test dumps: no `NOT NULL`s (the dump may leave such a
+   * column `\N`), and MBID columns as text (it may name things `artist-a`).
+   * Queries that compare MBIDs as text work on both kinds of database.
    */
-  constraints?: boolean;
+  lenient?: boolean;
 }
 
 /** Options of {@link refreshDatabase}. */
@@ -306,6 +307,7 @@ export interface DatabaseInfo {
     source?: string;
     indexes?: IndexLevel;
     built_at?: string;
+    lenient?: "true" | "false";
     diff_from_export?: string;
     [key: string]: string | undefined;
   };

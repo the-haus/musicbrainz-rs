@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -57,6 +57,25 @@ describe("buildDatabase", () => {
     expect(err).toBeInstanceOf(MusicBrainzError);
     expect(String((err as Error).message)).toMatch(/artist: 2 fields in the dump, 19 columns/);
     expect(existsSync(path.join(dir, "x.duckdb"))).toBe(false);
+  });
+
+  it("loads a hand-made dump leniently: names for MBIDs, NULLs anywhere", async () => {
+    const dir = tempDir();
+    const source = path.join(dir, "mini");
+    mkdirSync(path.join(source, "mbdump"), { recursive: true });
+    writeFileSync(path.join(source, "SCHEMA_SEQUENCE"), "31\n");
+    // id, gid, name and \N for the rest (sort_name is NOT NULL in the schema).
+    writeFileSync(path.join(source, "mbdump", "artist"), `1\tartist-a\tA${"\t\\N".repeat(16)}\n`);
+    writeFileSync(path.join(source, "mbdump", "artist_gid_redirect"), "artist-old\t1\t\\N\n");
+    const database = path.join(dir, "mini.duckdb");
+    await expect(buildDatabase({ source, database })).rejects.toThrow(/artist/);
+    await buildDatabase({ source, database, lenient: true });
+    const db = MusicBrainzDatabase.open(database);
+    expect(db.isLenient()).toBe(true);
+    const resolved = await db.resolveGids("artist", ["artist-a", "artist-old"]);
+    expect(resolved.get("artist-a")).toMatchObject({ id: 1, redirected: false });
+    expect(resolved.get("artist-old")).toMatchObject({ id: 1, gid: "artist-a", redirected: true });
+    db.close();
   });
 
   it("finds an export's layout", async () => {

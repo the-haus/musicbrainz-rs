@@ -70,9 +70,10 @@ pub struct BuildOptions {
     pub memory_limit: Option<String>,
     /// Replace an existing database (a plain build refuses to).
     pub replace: bool,
-    /// Make the schema's `NOT NULL` constraints (default true). Off, a dump
-    /// that leaves such columns `\N` (a hand-made test dump) still loads.
-    pub constraints: bool,
+    /// For hand-made test dumps: no `NOT NULL`s (a dump may leave such a
+    /// column `\N`), and MBID columns as text (a dump may name things
+    /// `artist-a`). Off by default.
+    pub lenient: bool,
     /// Progress reports.
     pub on_progress: Option<ProgressFn>,
     /// Set to stop: the build ends with [`Error::Stopped`], leaving any
@@ -97,7 +98,7 @@ impl BuildOptions {
             threads: 0,
             memory_limit: None,
             replace: false,
-            constraints: true,
+            lenient: false,
             on_progress: None,
             stop: None,
         }
@@ -280,7 +281,7 @@ fn first_line_fields(file: &Path) -> Result<Option<usize>> {
 }
 
 /// Loads one table (on the loader thread).
-fn load(conn: &Connection, job: &LoadJob, sequence: u32, not_null: bool) -> Result<TableStats> {
+fn load(conn: &Connection, job: &LoadJob, sequence: u32, lenient: bool) -> Result<TableStats> {
     let started = Instant::now();
     let t = &job.table;
     let bytes = fs::metadata(&job.file)?.len();
@@ -297,11 +298,11 @@ fn load(conn: &Connection, job: &LoadJob, sequence: u32, not_null: bool) -> Resu
     if let Some(s) = ddl::table_schema(&t.name) {
         conn.execute_batch(&format!("CREATE SCHEMA IF NOT EXISTS {}", ddl::ident(s)))?;
     }
-    conn.execute_batch(&ddl::create_table(t, not_null))?;
+    conn.execute_batch(&ddl::create_table(t, lenient))?;
     let rows = if bytes == 0 {
         0
     } else {
-        conn.execute(&ddl::load_table(t, &job.file), [])? as u64
+        conn.execute(&ddl::load_table(t, &job.file, lenient), [])? as u64
     };
     if job.remove_after {
         let _ = fs::remove_file(&job.file);
@@ -347,6 +348,7 @@ fn write_meta(
     );
     meta.insert("source", Some(opts.source.display().to_string()));
     meta.insert("indexes", Some(opts.indexes.as_str().to_string()));
+    meta.insert("lenient", Some(opts.lenient.to_string()));
     let mut stmt = conn.prepare("INSERT INTO mb_meta VALUES (?, ?)")?;
     for (k, v) in &meta {
         stmt.execute(duckdb::params![k, v])?;
@@ -490,7 +492,7 @@ fn run(opts: BuildOptions, diff_previous: bool) -> Result<BuildStats> {
         let progress = progress.clone();
         let failed = failed.clone();
         let stop = opts.stop.clone();
-        let not_null = opts.constraints;
+        let lenient = opts.lenient;
         thread::Builder::new().name("musicbrainz-loader".into()).spawn(
             move || -> Result<(Connection, Vec<TableStats>)> {
                 let mut loaded = Vec::new();
@@ -499,7 +501,7 @@ fn run(opts: BuildOptions, diff_previous: bool) -> Result<BuildStats> {
                         return Err(Error::Stopped);
                     }
                     progress.report("load", Some(&job.table.name));
-                    match load(&conn, &job, sequence, not_null) {
+                    match load(&conn, &job, sequence, lenient) {
                         Ok(stats) => {
                             progress.rows.fetch_add(stats.rows, Ordering::Relaxed);
                             progress.tables_loaded.fetch_add(1, Ordering::Relaxed);
@@ -686,7 +688,7 @@ fn run(opts: BuildOptions, diff_previous: bool) -> Result<BuildStats> {
                     if let Some(s) = ddl::table_schema(&t.name) {
                         conn.execute_batch(&format!("CREATE SCHEMA IF NOT EXISTS {}", ddl::ident(s)))?;
                     }
-                    conn.execute_batch(&ddl::create_table(t, opts.constraints))?;
+                    conn.execute_batch(&ddl::create_table(t, opts.lenient))?;
                     tables.push(TableStats {
                         name: t.name.clone(),
                         rows: 0,
