@@ -772,7 +772,8 @@ pub fn upgrade(database: &Path) -> Result<Vec<String>> {
         .collect::<std::result::Result<_, _>>()?;
     drop(stmt);
     let meta = |k: &str| -> Option<String> {
-        conn.query_row("SELECT value FROM mb_meta WHERE key = ?", [k], |r| r.get(0)).ok()
+        conn.query_row("SELECT value FROM mb_meta WHERE key = ?", [k], |r| r.get(0))
+            .ok()
     };
     let sequence = meta("schema_sequence").and_then(|s| s.parse().ok());
     let (schema, _) = resolve_schema(sequence, None, None, true)?;
