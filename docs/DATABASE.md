@@ -125,7 +125,10 @@ SELECT * FROM artist WHERE name IN (SELECT unnest(from_json(?, '["VARCHAR"]')));
 
 The Node.js lookups (`byId`, `byGid`, `rowsOf`, `relationships`, `credits`,
 `aliases`, `areaCountries`, `entities`) do this for you: one query per call,
-whatever the number of keys.
+whatever the number of keys. For the common questions (a discography, a
+tracklist, an ISRC, a band's members, what is near a venue, who an artist is
+on Discogs), the Node.js package has helpers that write these queries: see
+its README's *Helpers*.
 
 ## Performance notes
 

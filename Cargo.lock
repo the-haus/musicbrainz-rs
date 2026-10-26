@@ -1034,7 +1034,7 @@ dependencies = [
 
 [[package]]
 name = "musicbrainz-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "ctrlc",
@@ -1047,7 +1047,7 @@ dependencies = [
 
 [[package]]
 name = "musicbrainz-db"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bzip2",
  "crossbeam-channel",
@@ -1063,7 +1063,7 @@ dependencies = [
 
 [[package]]
 name = "musicbrainz-dump"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bzip2",
  "crc32fast",
@@ -1079,7 +1079,7 @@ dependencies = [
 
 [[package]]
 name = "musicbrainz-node"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "mimalloc",
  "musicbrainz-db",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "musicbrainz-schema"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "thiserror",
 ]

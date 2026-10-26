@@ -10,16 +10,16 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-version = "0.1.0"
+version = "0.2.0"
 license-file = "LICENCE.txt"
 repository = "https://github.com/the-haus/musicbrainz-rs"
 rust-version = "1.87"
 
 [workspace.dependencies]
 # Internal crates.
-musicbrainz-schema = { path = "crates/musicbrainz-schema", version = "=0.1.0" }
-musicbrainz-dump = { path = "crates/musicbrainz-dump", version = "=0.1.0" }
-musicbrainz-db = { path = "crates/musicbrainz-db", version = "=0.1.0" }
+musicbrainz-schema = { path = "crates/musicbrainz-schema", version = "=0.2.0" }
+musicbrainz-dump = { path = "crates/musicbrainz-dump", version = "=0.2.0" }
+musicbrainz-db = { path = "crates/musicbrainz-db", version = "=0.2.0" }
 
 # External crates.
 anyhow = "1"

@@ -1,7 +1,11 @@
 // Public types of @musicbrainz-rs/node.
 
-/** Why something failed: `aborted` (a signal or `close()`), `invalid` (a misuse), `failed`. */
-export type ErrorCode = "aborted" | "invalid" | "failed";
+/**
+ * Why something failed: `aborted` (a signal or `close()`), `invalid` (a
+ * misuse: a bad argument), `unavailable` (the database was built without a
+ * table it needs), `failed`.
+ */
+export type ErrorCode = "aborted" | "invalid" | "unavailable" | "failed";
 
 /** Every error this package throws. */
 export class MusicBrainzError extends Error {

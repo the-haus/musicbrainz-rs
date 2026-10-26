@@ -17,13 +17,12 @@ import { buildDatabase, MusicBrainzDatabase } from "@musicbrainz-rs/node";
 await buildDatabase({ source: "dumps/20261017-002244", database: "mb.duckdb" });
 const db = MusicBrainzDatabase.open("mb.duckdb");
 
-const daftPunk = await db.entity("artist", "056e4f3e-d505-4dad-8ec1-d04f521cbb56", ["aliases", "relationships"]);
-const albums = await db.query(
-  `SELECT rg.name, rg.gid FROM release_group rg
-   JOIN artist_credit_name acn ON acn.artist_credit = rg.artist_credit
-   WHERE acn.artist = ? AND rg.type = 1 ORDER BY rg.name`,
-  [daftPunk!.id],
-);
+const [daftPunk] = await db.search.artists("daft punk", { mode: "exact" });
+const albums = await db.artists.discography(daftPunk.gid, { primaryTypes: ["Album"], excludeSecondary: true });
+const members = await db.artists.members(daftPunk.gid);        // with years and instruments
+const ids = await db.artists.externalIds(daftPunk.gid);        // { wikidata: ["Q185828"], discogs: […], spotify: […] }
+// …or any SQL:
+const rows = await db.query("SELECT name FROM release_group WHERE artist_credit IN (SELECT artist_credit FROM artist_credit_name WHERE artist = ?)", [daftPunk.id]);
 ```
 
 ## Why
@@ -78,6 +77,16 @@ is DuckDB's (15 GB here; bound it with `memoryLimit` / `--memory`).
   country an area is in — and whole entities shaped like MusicBrainz's web
   service (artists with areas and life spans, releases with media, tracks
   and recordings, …).
+- **Helpers** for the questions MusicBrainz is asked, each one call:
+  search by name (exact, prefix, substring, fuzzy; aliases; ranked), an
+  artist's discography, releases, recordings, works, members and bands,
+  collaborators, events, labels and country; a release group's original
+  release and tracklist; releases by barcode or catalogue number;
+  recordings by ISRC and where they appear; works by ISWC and their
+  writers; labels by label code and their catalogues; the area tree; places
+  near a point; an event's lineup; a festival's editions in order; the genre
+  taxonomy; and who an entity is on 30 other services (Wikidata, Discogs,
+  Spotify, Apple Music, …) and back.
 - **Sessions** hold one connection for temporary tables (stage a scope,
   then join everything against it).
 - **Subsets**: `musicbrainz subset` writes a consistent slice of a database

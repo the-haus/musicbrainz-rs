@@ -49,30 +49,35 @@ export function runTask<T, P>(
       signal?.removeEventListener("abort", abort);
       native?.release();
     };
-    native = start((e) => {
-      switch (e.type) {
-        case "progress":
-          if (onProgress) {
-            try {
-              onProgress(JSON.parse(e.data) as P);
-            } catch {
-              /* a throwing callback must not stop the task */
+    try {
+      native = start((e) => {
+        switch (e.type) {
+          case "progress":
+            if (onProgress) {
+              try {
+                onProgress(JSON.parse(e.data) as P);
+              } catch {
+                /* a throwing callback must not stop the task */
+              }
             }
-          }
-          break;
-        case "end":
-          finish();
-          if (signal?.aborted) reject(new MusicBrainzError("aborted", "aborted"));
-          else resolve(JSON.parse(e.data) as T);
-          break;
-        case "error":
-          finish();
-          reject(errorOf(e.data));
-          break;
-        default:
-          onEvent?.(e.type, JSON.parse(e.data));
-      }
-    });
+            break;
+          case "end":
+            finish();
+            if (signal?.aborted) reject(new MusicBrainzError("aborted", "aborted"));
+            else resolve(JSON.parse(e.data) as T);
+            break;
+          case "error":
+            finish();
+            reject(errorOf(e.data));
+            break;
+          default:
+            onEvent?.(e.type, JSON.parse(e.data));
+        }
+      });
+    } catch (e) {
+      reject(e instanceof MusicBrainzError ? e : new MusicBrainzError((e as Error).message, "invalid"));
+      return;
+    }
     signal?.addEventListener("abort", abort, { once: true });
   });
 }
@@ -192,7 +197,14 @@ export class RowStream<T> implements AsyncIterable<T> {
       this.#error ??= new MusicBrainzError("aborted", "aborted");
       this.close();
     });
-    this.#native = this.#start((e) => this.#onEvent(e));
+    try {
+      this.#native = this.#start((e) => this.#onEvent(e));
+    } catch (e) {
+      this.#ended = true;
+      this.#error = e instanceof MusicBrainzError ? e : new MusicBrainzError((e as Error).message);
+      this.#resolveStats({ rows: 0, stopped: true });
+      return;
+    }
     finalizer.register(this, this.#native, this);
     this.#native.request(this.#readAhead);
   }

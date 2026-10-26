@@ -1,6 +1,6 @@
 {
   "name": "@musicbrainz-rs/node",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MusicBrainz full exports as DuckDB databases in Node.js: built from mbdump.tar.bz2 in one pass (parallel bzip2, Rust), refreshed with a diff of what changed, queried with SQL and batched lookups.",
   "license": "SEE LICENSE IN LICENSE",
   "packageManager": "yarn@4.5.1",

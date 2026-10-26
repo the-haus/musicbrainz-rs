@@ -223,3 +223,38 @@ fn only_some_tables_and_wrong_schemas() {
     assert!(!db2.exists());
     assert!(!root.path().join("bad.duckdb.building").exists());
 }
+
+#[test]
+fn subsets_build_again() {
+    let root = tempfile::tempdir().unwrap();
+    let t1 = v1();
+    let t1: Vec<(&str, &str)> = t1.iter().map(|(a, b)| (*a, b.as_str())).collect();
+    let src = export(root.path(), "20261014-001756", &t1);
+    let db = root.path().join("full.duckdb");
+    build(opts(&src, &db)).unwrap();
+    let d = Database::open(&db, &OpenOptions::default()).unwrap();
+    let conn = d.connection().unwrap();
+    let schema = musicbrainz_schema::Schema::bundled();
+    let mut o = musicbrainz_db::subset::SubsetOptions::default();
+    o.artists = vec![G1.to_string()];
+    let rows = musicbrainz_db::subset::choose(&conn, schema, &o).unwrap();
+    // The artist, what is its own (its alias, its URL relationship), and what
+    // those refer to (the link, its type, the URL).
+    for t in ["artist", "artist_alias", "l_artist_url", "link", "link_type", "url"] {
+        assert!(rows.get(t).is_some_and(|r| !r.is_empty()), "{t} in {:?}", rows.keys());
+    }
+    assert_eq!(rows["artist"].len(), 1, "only the seed: artist 2 is no part of it");
+    let out = root.path().join("subset");
+    musicbrainz_db::subset::write(&conn, schema, &rows, &out).unwrap();
+    drop(conn);
+    drop(d);
+    let again = root.path().join("again.duckdb");
+    let stats = build(opts(&out, &again)).unwrap();
+    assert_eq!(stats.tables.iter().find(|t| t.name == "artist").unwrap().rows, 1);
+    let d = Database::open(&again, &OpenOptions::default()).unwrap();
+    // Escapes survive the round trip.
+    assert_eq!(
+        d.query_json("SELECT name FROM artist", &[]).unwrap(),
+        "[{\"name\":\"AC\\\\DC\"}]"
+    );
+}

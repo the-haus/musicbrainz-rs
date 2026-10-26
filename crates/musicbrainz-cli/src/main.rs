@@ -119,7 +119,8 @@ enum Command {
         database: PathBuf,
         /// The folder to write (`<dir>/mbdump/<table>`).
         dir: PathBuf,
-        /// Seed artists' MBIDs (`artist:` prefix optional).
+        /// Seeds: artists' MBIDs (`artist:` prefix optional), and release
+        /// groups to take whatever the caps (`release-group:<mbid>`).
         #[arg(long = "seed", required = true)]
         seeds: Vec<String>,
     },
@@ -453,8 +454,10 @@ fn run(cli: Cli, stop: Arc<AtomicBool>) -> Fallible {
             let conn = db.connection()?;
             let mut opts = musicbrainz_db::subset::SubsetOptions::default();
             for s in seeds {
-                let gid = s.strip_prefix("artist:").unwrap_or(&s);
-                opts.artists.push(gid.to_string());
+                match s.strip_prefix("release-group:") {
+                    Some(gid) => opts.release_groups.push(gid.to_string()),
+                    None => opts.artists.push(s.strip_prefix("artist:").unwrap_or(&s).to_string()),
+                }
             }
             let schema = Schema::bundled();
             let rows = musicbrainz_db::subset::choose(&conn, schema, &opts)?;

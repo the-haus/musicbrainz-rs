@@ -22,7 +22,29 @@ import type {
   TableSchema,
 } from "./types.js";
 
-export { MusicBrainzDatabase, Queries, Session, tableName } from "./database.js";
+export { DATABASE_FORMAT, MusicBrainzDatabase, Queries, Session, tableName } from "./database.js";
+export type { LinkType } from "./database.js";
+export { ArtistsApi, firstReleaseDates } from "./api/artists.js";
+export type {
+  ArtistEvent,
+  ArtistRef,
+  ArtistRelation,
+  ArtistWork,
+  DiscographyOptions,
+  Membership,
+  RecordingSummary,
+  ReleaseGroupSummary,
+  ReleaseSummary,
+} from "./api/artists.js";
+export type { EntityKey, PageOptions, Ref } from "./api/common.js";
+export { ExternalApi, externalIds, parseUrl, SERVICES } from "./api/external.js";
+export type { ExternalIds, Service, ServiceName, UrlOwner } from "./api/external.js";
+export { RecordingsApi, ReleaseGroupsApi, ReleasesApi, WorksApi } from "./api/music.js";
+export type { Appearance, ReleaseLabel, WorkRecording, Writer } from "./api/music.js";
+export { AreasApi, EventsApi, GenresApi, LabelsApi, PlacesApi, SeriesApi } from "./api/places.js";
+export type { AreaRef as AreaListItem, EventSummary, NearbyPlace, Performer, SeriesItem } from "./api/places.js";
+export { SearchApi } from "./api/search.js";
+export type { MatchMode, SearchHit, SearchOptions } from "./api/search.js";
 export type { Alias, ArtistCredit, OpenOptions, Relationship, RelationshipOptions } from "./database.js";
 export type * from "./entities.js";
 export { RowStream } from "./task.js";

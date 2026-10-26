@@ -322,12 +322,16 @@ impl Task for QueryTask {
     type JsValue = String;
 
     fn compute(&mut self) -> Result<String> {
-        if self.execute {
-            let n = self.db.execute(&self.sql, &self.params).map_err(err)?;
-            Ok(n.to_string())
-        } else {
-            self.db.query_json(&self.sql, &self.params).map_err(err)
-        }
+        // A panic on the libuv pool would take the process down: an error instead.
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            if self.execute {
+                self.db.execute(&self.sql, &self.params).map(|n| n.to_string())
+            } else {
+                self.db.query_json(&self.sql, &self.params)
+            }
+        }))
+        .map_err(|_| err("the query panicked"))?
+        .map_err(err)
     }
 
     fn resolve(&mut self, _: Env, out: String) -> Result<String> {
@@ -725,7 +729,10 @@ impl Task for JsonTask {
     type JsValue = String;
 
     fn compute(&mut self) -> Result<String> {
-        (self.0.take().expect("run once"))().map_err(err)
+        let f = self.0.take().ok_or_else(|| err("the task ran twice"))?;
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+            .map_err(|_| err("the task panicked"))?
+            .map_err(err)
     }
 
     fn resolve(&mut self, _: Env, out: String) -> Result<String> {

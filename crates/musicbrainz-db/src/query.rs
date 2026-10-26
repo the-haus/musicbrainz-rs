@@ -66,10 +66,17 @@ impl DerefMut for Pooled<'_> {
     }
 }
 
+/// Connections kept for reuse; more, made for a burst of calls at once, are
+/// closed when handed back.
+const POOL_SIZE: usize = 16;
+
 impl Drop for Pooled<'_> {
     fn drop(&mut self) {
         if let Some(c) = self.conn.take() {
-            self.db.pool.lock().unwrap().push(c);
+            let mut pool = self.db.pool.lock().unwrap_or_else(|e| e.into_inner());
+            if pool.len() < POOL_SIZE {
+                pool.push(c);
+            }
         }
     }
 }
@@ -138,9 +145,11 @@ impl Database {
 
     /// A connection of the pool (a new one when all are in use).
     pub fn connection(&self) -> Result<Pooled<'_>> {
-        let conn = match self.pool.lock().unwrap().pop() {
+        // A poisoned lock (a panic while holding it) still guards a
+        // connection list that is whole: take it back rather than fail.
+        let conn = match self.pool.lock().unwrap_or_else(|e| e.into_inner()).pop() {
             Some(c) => c,
-            None => self.base.lock().unwrap().try_clone()?,
+            None => self.base.lock().unwrap_or_else(|e| e.into_inner()).try_clone()?,
         };
         Ok(Pooled {
             db: self,

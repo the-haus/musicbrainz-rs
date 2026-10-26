@@ -35,6 +35,9 @@ const SMALL_TABLE: u64 = 5_000;
 pub struct SubsetOptions {
     /// The seed artists' MBIDs.
     pub artists: Vec<String>,
+    /// Release groups to take whatever the caps (their MBIDs): an artist's
+    /// best-known albums, for fixtures that need them.
+    pub release_groups: Vec<String>,
     /// Relationship tables of the expanded artists to follow (either side).
     pub follow: Vec<String>,
     /// Caps: release groups per artist credit, releases per release group,
@@ -59,6 +62,7 @@ impl Default for SubsetOptions {
     fn default() -> Self {
         SubsetOptions {
             artists: Vec::new(),
+            release_groups: Vec::new(),
             follow: [
                 "l_artist_artist",
                 "l_artist_event",
@@ -216,6 +220,11 @@ pub fn choose(conn: &Connection, schema: &Schema, opts: &SubsetOptions) -> Resul
         &credits,
         caps.release_groups,
     )?;
+    if !opts.release_groups.is_empty() {
+        let quoted: Vec<String> = opts.release_groups.iter().map(|g| crate::ddl::literal(g)).collect();
+        let sql = format!("SELECT rowid FROM release_group WHERE gid IN ({})", quoted.join(","));
+        add(&mut taken, "release_group", rowids(conn, &sql)?);
+    }
     let groups = ids(conn, &taken, "release_group")?;
     take(
         &mut taken,
@@ -291,12 +300,15 @@ pub fn choose(conn: &Connection, schema: &Schema, opts: &SubsetOptions) -> Resul
 
     // The small tables whole.
     for (t, rows) in &loaded {
-        let owned = t.starts_with("l_")
-            || musicbrainz_schema::ENTITY_TYPES.contains(&t.as_str())
-            || ["_alias", "_gid_redirect", "_attribute", "_ipi", "_isni"]
-                .iter()
-                .any(|x| t.ends_with(x))
-            || t.starts_with("iso_3166");
+        // The genre taxonomy is small and of a piece: always all of it.
+        let taxonomy = ["genre", "genre_alias", "genre_alias_type", "l_genre_genre"].contains(&t.as_str());
+        let owned = !taxonomy
+            && (t.starts_with("l_")
+                || musicbrainz_schema::ENTITY_TYPES.contains(&t.as_str())
+                || ["_alias", "_gid_redirect", "_attribute", "_ipi", "_isni"]
+                    .iter()
+                    .any(|x| t.ends_with(x))
+                || t.starts_with("iso_3166"));
         if *rows > 0 && *rows <= SMALL_TABLE && schema.table(t).is_some() && !owned {
             add(
                 &mut taken,

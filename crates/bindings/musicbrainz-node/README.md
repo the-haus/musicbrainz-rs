@@ -154,6 +154,109 @@ Each is one query for all the keys, whatever their number.
 and with `include`: `aliases`, `relationships`, `urls`, `redirects` (MBIDs
 merged in), `identifiers` (IPIs, ISNIs).
 
+## Helpers
+
+The questions MusicBrainz is usually asked, each an `await`. They take an
+entity by id or by MBID (merges followed: an old MBID still finds the
+artist), answer `[]` or `undefined` for an entity that is not there, page
+long lists (`{ limit, offset }`), and keep MusicBrainz's order where it has
+one. A helper that needs a table the database was built without throws a
+`MusicBrainzError` with code `unavailable` (or, where nothing would be lost,
+answers empty).
+
+```ts
+const db = MusicBrainzDatabase.open("mb.duckdb");
+const [dp] = await db.search.artists("daft punk", { mode: "exact" });
+const albums = await db.artists.discography(dp.gid, { primaryTypes: ["Album"], excludeSecondary: true });
+const discovery = await db.releaseGroups.original(albums[1].id);          // the 2001 CD, with media
+const writers = await db.works.writers((await db.recordings.works(discovery.media[0].tracks[0].recording.id))[0].id);
+const ids = await db.artists.externalIds(dp.gid);                          // { wikidata: ["Q185828"], discogs: ["artist/1289"], … }
+const venues = await db.places.near(52.3731, 4.8926, { radiusKm: 2 });     // around Dam Square
+```
+
+### `db.search`
+
+`artists`, `releaseGroups`, `releases`, `recordings`, `works`, `labels`,
+`areas`, `places`, `events`, `series`, `genres`, `instruments` (text,
+options), or `entities(type, text, options)`. Names, sort names and aliases
+match case- and accent-insensitively (`Beyoncé` is `beyonce`), by `mode`:
+`exact`, `prefix`, `contains` (default) or `fuzzy` (Jaro–Winkler,
+`minSimilarity` default 0.88). Hits come best first — by score (1 exact, 0.9
+prefix, 0.8 substring, below that fuzzy), then popularity (an artist's
+release groups, a recording's tracks, a label's releases, …), then id — with
+the name that matched, how (`name`, `sort name`, `alias`), the score and the
+popularity. `aliases: false` matches names only; `popularity: false` skips
+the ranking (a third faster over recordings). Measured on the full export:
+an exact artist search ~150 ms, fuzzy ~300 ms, a recording search ~1.4 s.
+
+### `db.artists`
+
+| | |
+|---|---|
+| `get(key, include)` | the artist ([`entities`](#lookups)) |
+| `find(name)` | exact name search |
+| `byExternalId(service, id)` | `("wikidata", "Q185828")`, `("discogs", "artist/1289")`, `("spotify", "artist/…")` |
+| `discography(key, { primaryTypes, excludeSecondary, leadOnly, officialOnly })` | release groups, oldest first, with types, first release date, credit |
+| `releases(key, { status, leadOnly })` | releases credited to it, oldest first, with date, country, barcode |
+| `recordings(key)` | recordings credited to it, by name |
+| `works(key)` | works it wrote, composed, arranged, … with its roles |
+| `members(key, { current })`, `memberOf(key)` | band members / bands, with years, instruments, credits |
+| `related(key, { types })` | other artist relationships (`is person`, `collaboration`, `subgroup`, `tribute`, …) |
+| `collaborators(key)` | the artists credited with it most often |
+| `events(key, { from, to, roles })` | events it performed at, newest first, with place and role |
+| `labels(key)` | the labels of its releases, most releases first |
+| `country(key)` | ISO 3166-1 of its area (or begin area), walking the area tree |
+| `urls(key)`, `externalIds(key)`, `aliases(key)` | its links, its ids elsewhere, its aliases |
+| `counts(key)` | how many release groups, releases, recordings, works, events |
+| `refs(ids)` | artists as lists name them (`{ id, gid, name, sortName, type, disambiguation }`) |
+
+### `db.releaseGroups`, `db.releases`, `db.recordings`, `db.works`
+
+| | |
+|---|---|
+| `releaseGroups.releases(key, { status })` | a group's releases, oldest first |
+| `releaseGroups.original(key)` | the release it first came out as (official, earliest, fewest media), with its tracklist |
+| `releaseGroups.urls`, `.externalIds` | its links and ids elsewhere (Discogs master, …) |
+| `releases.tracklist(key)` | media and tracks, each with its recording |
+| `releases.byBarcode(code)`, `.byCatalogNumber(cat, { label })` | releases by barcode or catalogue number |
+| `releases.labels(key)`, `.events(key)` | labels with catalogue numbers; dates and countries |
+| `releases.otherVersions(key)` | the group's other releases |
+| `releases.recordings(key)`, `.urls`, `.externalIds` | its recordings in running order; links; ids elsewhere |
+| `recordings.byIsrc(isrc)`, `.isrcs(key)` | recordings by ISRC; a recording's ISRCs |
+| `recordings.appearances(key, { status })` | every track of it: release, group, date, medium, format, position, number |
+| `recordings.works(key)`, `.externalIds` | the works it performs; ids elsewhere |
+| `works.byIswc(iswc)`, `.iswcs(key)` | works by ISWC; a work's ISWCs |
+| `works.writers(key)` | who wrote it, and how (`composer`, `lyricist`, …) |
+| `works.recordings(key)` | its recordings, with how (`live`, `cover`, `instrumental`, …) |
+
+### `db.labels`, `db.areas`, `db.places`, `db.events`, `db.series`, `db.genres`
+
+| | |
+|---|---|
+| `labels.byLabelCode("LC 3098")` | labels by label code |
+| `labels.releases(key)`, `.artists(key)` | its releases with catalogue numbers; the artists with most releases on it |
+| `labels.parents(key)`, `.imprints(key)` | what it is an imprint of or owned by; its imprints |
+| `areas.byIsoCode("NL" \| "NL-NH" \| "SUHH")`, `.country(key)` | the area of an ISO 3166 code; the country an area is in |
+| `areas.ancestors(key)`, `.children(key, { type })` | the areas it is part of, nearest first; the areas in it |
+| `areas.artists(key, { deep })`, `.labels`, `.places` | what is from or in an area (`deep`: the areas inside it too) |
+| `places.near(lat, lng, { radiusKm, type })` | places within a radius, nearest first, with the distance |
+| `places.events(key, { from, to })` | a venue's events, newest first |
+| `events.lineup(key)` | who performed, headliners first |
+| `events.place(key)`, `.series(key)`, `.between(from, to, { types })` | where; of which series (festival); a period's events |
+| `series.items(key)`, `.events(key)` | a series' items (a festival's editions) in its order, with their numbers |
+| `genres.all()`, `.byName(name)`, `.parents`, `.subgenres`, `.fusionOf`, `.graph()` | the genre taxonomy |
+
+### `db.external`, and the database
+
+| | |
+|---|---|
+| `external.ids(type, key)`, `.idsOf(type, keys)` | ids elsewhere from an entity's URLs, by service |
+| `external.byUrl(url)` | the entities linked to a URL, and how |
+| `external.find(service, id, { types })`, `.byWikidata(q)` | the entities of an id elsewhere |
+| `parseUrl(url)`, `externalIds(urls)`, `SERVICES` | the URL patterns of 30 services (Wikidata, Discogs, Spotify, Apple Music, Deezer, Tidal, Bandcamp, SoundCloud, YouTube, Instagram, Wikipedia, AllMusic, Last.fm, IMDb, VIAF, ISNI, Songkick, setlist.fm, Resident Advisor, Beatport, Genius, OpenStreetMap, GeoNames, …) |
+| `db.stats()` | rows of every table, and of each entity type |
+| `db.linkTypes(a, b)` | the relationship types between two entity types |
+
 ## Exports
 
 | function | |
@@ -166,8 +269,24 @@ merged in), `identifiers` (IPIs, ISNIs).
 | `extractArchive(archive, dir, { tables, onMember, onProgress, signal })` | take tables out |
 | `schema()`, `tableSchema(name)` | the bundled schema: columns, types, keys, archive and licence of every table |
 
-Errors are `MusicBrainzError`s with a `code`: `aborted`, `invalid` or
-`failed`.
+Errors are `MusicBrainzError`s with a `code`: `aborted` (a signal or
+`close()`), `invalid` (a bad argument: not an id, an MBID, a date, an
+identifier; a misused option), `unavailable` (a table the database was built
+without) or `failed`.
+
+## Stability
+
+- Every value is bound as a parameter, never pasted into SQL; table and
+  column names a lookup takes must be plain identifiers.
+- Ids must be safe integers, MBIDs UUIDs (any case), dates `YYYY[-MM[-DD]]`,
+  pages `0 ≤ limit ≤ 10,000`.
+- Calls run concurrently on a pool of connections (at most 16 kept); a
+  stream holds its own. A panic in the native code is an error, never a
+  crash.
+- A database built by a newer release (a `format` this one does not know) is
+  refused at `open`; a DuckDB file built otherwise opens for SQL.
+- `MusicBrainzDatabase.close()` can be called twice; anything after it fails
+  with a `MusicBrainzError`.
 
 ## The database
 

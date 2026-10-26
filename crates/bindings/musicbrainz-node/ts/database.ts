@@ -1,6 +1,11 @@
 // A built database: SQL, streamed rows, and lookups that batch any number
 // of keys into one query.
 
+import { ArtistsApi } from "./api/artists.js";
+import { ExternalApi } from "./api/external.js";
+import { RecordingsApi, ReleaseGroupsApi, ReleasesApi, WorksApi } from "./api/music.js";
+import { AreasApi, EventsApi, GenresApi, LabelsApi, PlacesApi, SeriesApi } from "./api/places.js";
+import { SearchApi } from "./api/search.js";
 import { NativeDatabase, type NativeSession } from "./native.js";
 import { loadEntities, type EntityInclude, type EntityOf } from "./entities.js";
 import { RowStream, type StreamOptions } from "./task.js";
@@ -99,6 +104,43 @@ const quoted = (name: string) => `"${name.replace(/"/g, '""')}"`;
 export const tableName = (name: string) =>
   name.includes(".") ? name.split(".").map(quoted).join(".") : quoted(name);
 
+const IDENT = /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)?$/;
+
+/** Checks a table or column name is a plain identifier (what a lookup may take). */
+function identifier(name: string, what: string): string {
+  if (typeof name !== "string" || !IDENT.test(name)) throw new MusicBrainzError(`not a ${what} name: ${String(name)}`, "invalid");
+  return name;
+}
+
+/** Checks keys are safe integers. */
+function integers(keys: Iterable<number>): number[] {
+  const out = new Set<number>();
+  for (const k of keys) {
+    if (!Number.isSafeInteger(k)) throw new MusicBrainzError(`not an id: ${String(k)}`, "invalid");
+    out.add(k);
+  }
+  return [...out];
+}
+
+/** The newest database format this package reads (`mb_meta.format`). */
+export const DATABASE_FORMAT = 1;
+
+/** A link type: what a relationship between two entity types can be. */
+export interface LinkType {
+  id: number;
+  gid: string;
+  name: string;
+  entityType0: EntityType;
+  entityType1: EntityType;
+  /** `member of`, `has member`, … */
+  linkPhrase: string;
+  reversePhrase: string;
+  description: string | null;
+  deprecated: boolean;
+  /** Its parent type's id (types form a tree). */
+  parent: number | null;
+}
+
 const isEntity = (e: string): e is EntityType => (ENTITY_TYPES as readonly string[]).includes(e);
 function entity(e: string): EntityType {
   if (!isEntity(e)) throw new MusicBrainzError(`not an entity type: ${e}`, "invalid");
@@ -121,10 +163,88 @@ const toError = (e: unknown) => (e instanceof MusicBrainzError ? e : new MusicBr
  */
 export abstract class Queries {
   #native: NativeQueries;
+  #search: SearchApi | undefined;
+  #external: ExternalApi | undefined;
+  #artists: ArtistsApi | undefined;
+  #releaseGroups: ReleaseGroupsApi | undefined;
+  #releases: ReleasesApi | undefined;
+  #recordings: RecordingsApi | undefined;
+  #works: WorksApi | undefined;
+  #labels: LabelsApi | undefined;
+  #areas: AreasApi | undefined;
+  #places: PlacesApi | undefined;
+  #events: EventsApi | undefined;
+  #series: SeriesApi | undefined;
+  #genres: GenresApi | undefined;
 
   /** @internal */
   protected constructor(native: NativeQueries) {
     this.#native = native;
+  }
+
+  /** Finding entities by name (`db.search.artists("daft punk")`). */
+  get search(): SearchApi {
+    return (this.#search ??= new SearchApi(this));
+  }
+
+  /** External ids and URLs: who an entity is elsewhere, and whose a URL or an id elsewhere is. */
+  get external(): ExternalApi {
+    return (this.#external ??= new ExternalApi(this));
+  }
+
+  /** Artists: discography, releases, recordings, works, members, events, labels, … */
+  get artists(): ArtistsApi {
+    return (this.#artists ??= new ArtistsApi(this));
+  }
+
+  /** Release groups: their releases, original release, URLs. */
+  get releaseGroups(): ReleaseGroupsApi {
+    return (this.#releaseGroups ??= new ReleaseGroupsApi(this));
+  }
+
+  /** Releases: tracklists, barcodes, catalogue numbers, labels, versions. */
+  get releases(): ReleasesApi {
+    return (this.#releases ??= new ReleasesApi(this));
+  }
+
+  /** Recordings: ISRCs, where they appear, the works they perform. */
+  get recordings(): RecordingsApi {
+    return (this.#recordings ??= new RecordingsApi(this));
+  }
+
+  /** Works: ISWCs, writers, recordings. */
+  get works(): WorksApi {
+    return (this.#works ??= new WorksApi(this));
+  }
+
+  /** Labels: label codes, catalogues, artists, imprints. */
+  get labels(): LabelsApi {
+    return (this.#labels ??= new LabelsApi(this));
+  }
+
+  /** Areas: ISO codes, the area tree, what is in an area. */
+  get areas(): AreasApi {
+    return (this.#areas ??= new AreasApi(this));
+  }
+
+  /** Places: their events, what is near a point. */
+  get places(): PlacesApi {
+    return (this.#places ??= new PlacesApi(this));
+  }
+
+  /** Events: lineups, places, series, a period's events. */
+  get events(): EventsApi {
+    return (this.#events ??= new EventsApi(this));
+  }
+
+  /** Series: their items in order (a festival's editions). */
+  get series(): SeriesApi {
+    return (this.#series ??= new SeriesApi(this));
+  }
+
+  /** Genres: the taxonomy. */
+  get genres(): GenresApi {
+    return (this.#genres ??= new GenresApi(this));
   }
 
   /** Whether a table was loaded. */
@@ -202,12 +322,12 @@ export abstract class Queries {
     ids: Iterable<number>,
     options: { column?: string; columns?: string } = {},
   ): Promise<Map<number, T & Row>> {
-    const list = [...new Set(ids)];
+    const list = integers(ids);
     const out = new Map<number, T & Row>();
     if (!list.length) return out;
-    const col = quoted(options.column ?? "id");
+    const col = quoted(identifier(options.column ?? "id", "column"));
     const rows = await this.query<Row>(
-      `SELECT ${col} AS mb_key, ${options.columns ?? "*"} FROM ${tableName(table)} WHERE ${col} IN (SELECT unnest(?::BIGINT[])) ORDER BY rowid`,
+      `SELECT ${col} AS mb_key, ${options.columns ?? "*"} FROM ${tableName(identifier(table, "table"))} WHERE ${col} IN (SELECT unnest(?::BIGINT[])) ORDER BY rowid`,
       [list],
     );
     for (const { mb_key, ...row } of rows) if (!out.has(mb_key as number)) out.set(mb_key as number, row as T & Row);
@@ -224,12 +344,12 @@ export abstract class Queries {
     keys: Iterable<number>,
     options: { columns?: string; orderBy?: string } = {},
   ): Promise<Map<number, (T & Row)[]>> {
-    const list = [...new Set(keys)];
+    const list = integers(keys);
     const out = new Map<number, (T & Row)[]>();
     if (!list.length) return out;
-    const col = quoted(column);
+    const col = quoted(identifier(column, "column"));
     const rows = await this.query<Row>(
-      `SELECT ${col} AS mb_key, ${options.columns ?? "*"} FROM ${tableName(table)} WHERE ${col} IN (SELECT unnest(?::BIGINT[])) ORDER BY ${options.orderBy ?? "rowid"}`,
+      `SELECT ${col} AS mb_key, ${options.columns ?? "*"} FROM ${tableName(identifier(table, "table"))} WHERE ${col} IN (SELECT unnest(?::BIGINT[])) ORDER BY ${options.orderBy ?? "rowid"}`,
       [list],
     );
     for (const { mb_key, ...row } of rows) {
@@ -253,7 +373,9 @@ export abstract class Queries {
     const e = entity(type);
     // A lenient database's MBIDs are text, and need not look like UUIDs.
     const text = this.isLenient();
-    const asked = [...new Set([...gids].map((g) => g.toLowerCase()))].filter((g) => text || GID.test(g));
+    const asked = [...new Set([...gids].filter((g) => typeof g === "string").map((g) => g.trim().toLowerCase()))].filter(
+      (g) => g && (text || GID.test(g)),
+    );
     const out = new Map<string, { id: number; gid: string; redirected: boolean }>();
     if (!asked.length) return out;
     const redirects = this.hasTable(`${e}_gid_redirect`);
@@ -287,7 +409,9 @@ export abstract class Queries {
 
   /** A small table (`artist_type`, `medium_format`, `link_type`) as `id → name`. */
   async names(table: string, column = "name"): Promise<Map<number, string>> {
-    const rows = await this.query<{ id: number; n: string }>(`SELECT id, ${quoted(column)} AS n FROM ${tableName(table)}`);
+    const rows = await this.query<{ id: number; n: string }>(
+      `SELECT id, ${quoted(identifier(column, "column"))} AS n FROM ${tableName(identifier(table, "table"))}`,
+    );
     return new Map(rows.map((r) => [r.id, r.n]));
   }
 
@@ -506,6 +630,70 @@ export abstract class Queries {
     return (await this.entities(type, [key], include)).get(key);
   }
 
+  // ── The database ─────────────────────────────────────────────────────
+
+  /** How many of each entity there are (and of the tables loaded, by name). */
+  async stats(): Promise<{ entities: Partial<Record<EntityType, number>>; tables: Record<string, number> }> {
+    const tables = (await this.query<{ name: string; rows: number }>("SELECT name, rows FROM mb_tables ORDER BY name").catch(() => [])) as {
+      name: string;
+      rows: number;
+    }[];
+    const byName = Object.fromEntries(tables.map((t) => [t.name, Number(t.rows)]));
+    const entities: Partial<Record<EntityType, number>> = {};
+    for (const e of ENTITY_TYPES) {
+      const n = byName[e];
+      if (n !== undefined) entities[e] = n;
+    }
+    return { entities, tables: byName };
+  }
+
+  /**
+   * The relationship types between two entity types (either order; both
+   * omitted: every type): what `relationships()` returns as `type`.
+   */
+  async linkTypes(a?: EntityType, b?: EntityType): Promise<LinkType[]> {
+    if (!this.hasTable("link_type")) return [];
+    const params: Param[] = [];
+    let where = "";
+    if (a && b) {
+      const [x, y] = a <= b ? [a, b] : [b, a];
+      where = "WHERE entity_type0 = ? AND entity_type1 = ?";
+      params.push(x, y);
+    } else if (a || b) {
+      where = "WHERE entity_type0 = ? OR entity_type1 = ?";
+      params.push((a ?? b)!, (a ?? b)!);
+    }
+    const rows = await this.query<{
+      id: number;
+      gid: string;
+      name: string;
+      e0: EntityType;
+      e1: EntityType;
+      lp: string;
+      rp: string;
+      description: string | null;
+      deprecated: boolean;
+      parent: number | null;
+    }>(
+      `SELECT id, CAST(gid AS VARCHAR) AS gid, name, entity_type0 AS e0, entity_type1 AS e1, link_phrase AS lp,
+              reverse_link_phrase AS rp, nullif(description, '') AS description, coalesce(is_deprecated, false) AS deprecated, parent
+       FROM link_type ${where} ORDER BY entity_type0, entity_type1, child_order, name`,
+      params,
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      gid: r.gid,
+      name: r.name,
+      entityType0: r.e0,
+      entityType1: r.e1,
+      linkPhrase: r.lp,
+      reversePhrase: r.rp,
+      description: r.description,
+      deprecated: r.deprecated,
+      parent: r.parent,
+    }));
+  }
+
   // ── Changes ──────────────────────────────────────────────────────────
 
   /** What changed since the previous export (a refreshed database's `mb_changes`). */
@@ -539,6 +727,7 @@ export class MusicBrainzDatabase extends Queries {
   #db: NativeDatabase;
   #tables: Set<string> | undefined;
   #lenient: boolean | undefined;
+  #info: DatabaseInfo | undefined;
   readonly path: string;
 
   private constructor(native: NativeDatabase, path: string) {
@@ -547,18 +736,42 @@ export class MusicBrainzDatabase extends Queries {
     this.path = path;
   }
 
-  /** Opens a database file. */
+  /**
+   * Opens a database file. One built by a newer release of this package (a
+   * format it does not know) is refused; a DuckDB file built otherwise
+   * opens for SQL, with an empty {@link info}.
+   */
   static open(path: string, options: OpenOptions = {}): MusicBrainzDatabase {
+    if (typeof path !== "string" || !path) throw new MusicBrainzError("a database path is needed", "invalid");
+    let db: MusicBrainzDatabase;
     try {
-      return new MusicBrainzDatabase(NativeDatabase.open(path, options), path);
+      db = new MusicBrainzDatabase(NativeDatabase.open(path, options), path);
     } catch (e) {
       throw toError(e);
     }
+    const format = Number(db.info().meta.format ?? 0);
+    if (format > DATABASE_FORMAT) {
+      db.close();
+      throw new MusicBrainzError(
+        `${path} is of database format ${format}; this @musicbrainz-rs/node reads up to ${DATABASE_FORMAT}: upgrade the package`,
+        "invalid",
+      );
+    }
+    return db;
   }
 
   /** What the database was built from (`mb_meta`), and its tables' rows (`mb_tables`). */
   info(): DatabaseInfo {
-    return JSON.parse(this.#db.info()) as DatabaseInfo;
+    this.#info ??= (() => {
+      try {
+        return JSON.parse(this.#db.info()) as DatabaseInfo;
+      } catch (e) {
+        // A DuckDB file that is not one of ours: no metadata tables.
+        if (/mb_meta|mb_tables/.test((e as Error).message)) return { path: this.path, meta: {}, tables: {} };
+        throw toError(e);
+      }
+    })();
+    return this.#info;
   }
 
   hasTable(name: string): boolean {
