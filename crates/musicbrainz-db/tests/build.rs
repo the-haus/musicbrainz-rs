@@ -235,8 +235,10 @@ fn subsets_build_again() {
     let d = Database::open(&db, &OpenOptions::default()).unwrap();
     let conn = d.connection().unwrap();
     let schema = musicbrainz_schema::Schema::bundled();
-    let mut o = musicbrainz_db::subset::SubsetOptions::default();
-    o.artists = vec![G1.to_string()];
+    let o = musicbrainz_db::subset::SubsetOptions {
+        artists: vec![G1.to_string()],
+        ..Default::default()
+    };
     let rows = musicbrainz_db::subset::choose(&conn, schema, &o).unwrap();
     // The artist, what is its own (its alias, its URL relationship), and what
     // those refer to (the link, its type, the URL).
